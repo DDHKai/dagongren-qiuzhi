@@ -1,6 +1,12 @@
 # 求职决策助手（原型）
 
-## 跨设备实验测试版 0.1.0-experiment
+## 桌面实验测试版 0.1.1-experiment（Windows / macOS）
+
+使用已有Python 3.10+。Windows运行`start-windows.bat`；macOS在解压目录终端运行`sh ./start-macos.command`。仅监听本机，实际绑定失败时切换端口，Ctrl+C停止。不捆绑Python，不宣称虚拟环境独立于其原安装位置。无Python时仍可直接打开`web/index.html`，但不覆盖启动器测试。
+
+新版日志schema 2包含合成条件、分组、选择/隐藏和校验失败原因，可用于重建交互；下载请求不等于保存成功。无网络回传，无真实简历输入。按[桌面测试步骤](docs/desktop-testing.md)执行T01–T10并回传JSON及系统/浏览器信息。macOS支持入口已编写，实机部署仍待验证；不是已验证跨平台完整求职产品。
+
+## 历史 0.1.0-experiment
 
 浏览器打开 `web/index.html`，可使用完全合成数据测试条件分组、排序、选择及日志导出。无依赖、无模型调用、无外部操作。Windows可直接打开；iOS推荐Safari访问静态托管页面，具体步骤及日志回传见[跨设备实验测试](docs/跨设备实验测试.md)。这不是完整求职MVP，也未声称iOS支持桌面岗位采集。
 

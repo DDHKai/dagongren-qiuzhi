@@ -12,7 +12,7 @@ def main():
         raise SystemExit(json.dumps(result,ensure_ascii=False))
     out=root/'dist'
     out.mkdir(exist_ok=True)
-    target=out/'dagongren-0.1.0-experiment.zip'
+    target=out/'dagongren-0.1.1-experiment.zip'
     manifest={}
     with ZipFile(target,'w',ZIP_DEFLATED) as archive:
         for name in PUBLIC:

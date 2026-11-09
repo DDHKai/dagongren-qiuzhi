@@ -2,6 +2,8 @@
 /*
 !/.gitignore
 !/README.md
+!/start-windows.bat
+!/start-macos.command
 !/scripts/
 /scripts/*
 !/scripts/project_store.py
@@ -13,6 +15,8 @@
 !/scripts/check_public_files.py
 !/scripts/package_experiment.py
 !/scripts/test_experiment.mjs
+!/scripts/desktop_launcher.py
+!/scripts/test_desktop_launcher.py
 !/web/
 /web/*
 !/web/index.html
@@ -20,6 +24,7 @@
 /docs/*
 !/docs/开源边界与事实证据.md
 !/docs/跨设备实验测试.md
+!/docs/desktop-testing.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json
