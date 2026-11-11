@@ -12,15 +12,17 @@
 
 ## 当前能力
 
+main新增[公司财报固定信源留证](docs/company-research.md)：工作区第8节支持指定官方PDF/HTML下载、原文hash、指标引用及人工风险复核。尚未自动定位最新报告或判断成长，未知不作为淘汰理由；不生成总分。
+
 main新增[能力证据对照与人工复核](docs/ability-review.md)：岗位片段检索候选事实、人工说明任务交集与缺口、保存引用及方向意愿。默认无正向结论，不生成总分，证据变化旧稿失效。它不是自动AI语义判断，真实岗位草稿仍需人工复核。
 
 main新增[真实岗位条件预筛](docs/prescreen.md)：可在本地工作区导入采集检查点，明确选择固定底薪/发布区间等口径，展示符合、未知、冲突及原文引用。仅限所配置条件，不是AI能力匹配，不等于最终推荐，真实报告保存在本机。
 
-main现有[本地真实简历工作区](docs/private-workspace.md)：`start-windows.bat --workspace`或`sh ./start-macos.command --workspace`。支持文件导入、页/段审阅、字段原文映射、条件保存与逐项事实确认，数据落在本机私有目录。尚未接入真实岗位或模型，macOS新工作区仍待验证。下表主要描述既有合成实验发布，不把main新能力冒称已进入旧Release。
+main现有[本地真实简历工作区](docs/private-workspace.md)：`start-windows.bat --workspace`或`sh ./start-macos.command --workspace`。支持文件导入、页/段审阅、字段原文映射、条件保存与逐项事实确认，数据落在本机私有目录。已可导入真实岗位检查点并开展人工辅助对照，尚未接入模型；macOS新工作区仍待验证。下表主要描述既有合成实验发布，不把main新能力冒称已进入旧Release。
 
-main新增[PDF/DOCX原文提取与人工字段校对](docs/resume-document.md)：PDF可选pypdf依赖，保留页/段引用、显式映射及不可覆盖的校对版本；不含OCR或自动履历识别，也尚未接入网页。
+main新增[PDF/DOCX原文提取与人工字段校对](docs/resume-document.md)：PDF可选pypdf依赖，保留页/段引用、显式映射及不可覆盖的校对版本；不含OCR或自动履历识别，已接入本地工作区。
 
-main新增真实输入基础模块：`scripts/resume_workspace.py`可本地导入UTF-8文本/结构化JSON并保存待确认事实及条件；没有PDF/DOCX解析、网页入口或自动语义判断。它不属于此前固定实验Release。真实求职版的10阶段范围、命令与当前进度见[路线图](docs/real-job-roadmap.md)，不沿用合成发布的100%。
+main新增真实输入基础模块：`scripts/resume_workspace.py`可本地导入UTF-8文本/结构化JSON并保存待确认事实及条件；该独立模块本身不解析PDF/DOCX，文档与网页由上方模块接续；不含自动语义判断。它不属于此前固定实验Release。真实求职版的10阶段范围、命令与当前进度见[路线图](docs/real-job-roadmap.md)，不沿用合成发布的100%。
 
 | 能力 | 实际状态 |
 | --- | --- |

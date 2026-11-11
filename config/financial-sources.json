@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "status": "official-document-capture-and-human-review; discovery-and-correction-checks-manual",
+  "markets": {
+    "CN": {"name": "巨潮资讯网", "searchUrl": "https://www.cninfo.com.cn/new/index", "allowedHosts": ["www.cninfo.com.cn", "static.cninfo.com.cn"], "identifier": "证券代码+交易所+法定全称"},
+    "HK": {"name": "港交所披露易", "searchUrl": "https://www.hkexnews.hk/index_c.htm", "allowedHosts": ["www.hkexnews.hk", "www1.hkexnews.hk", "www2.hkexnews.hk"], "identifier": "股份代码+发行人法定全称"},
+    "US": {"name": "SEC EDGAR", "searchUrl": "https://www.sec.gov/search-filings", "allowedHosts": ["www.sec.gov", "data.sec.gov", "www.edgarcompany.sec.gov"], "identifier": "CIK+发行人法定全称，ticker仅辅助"}
+  },
+  "rules": {
+    "unknownMarket": "待配置，不自动使用聚合网站",
+    "unavailableOrMissing": "记录未找到、访问失败或未核实；不静默切换信源，不认定公司存在风险",
+    "searchEngine": "仅作官方原文定位；摘要不是财务证据",
+    "companyIR": "仅辅助主体关系及原文定位；不自动替代固定披露源",
+    "crossListing": "选定主披露市场，记录原因；各市场版本保留映射，不重复计数，不混算",
+    "corrections": "检查更正及重述，保留旧版本并标记替代关系",
+    "requiredEvidenceFields": ["market", "issuerLegalName", "securityIdentifier", "employerRelationship", "documentType", "reportPeriod", "disclosureDate", "retrievedAt", "sourcePlatform", "officialDocumentUrl", "documentHash", "pageOrSection", "currency", "unit", "consolidationScope", "auditStatus"],
+    "reviewPriorities": ["经营现金流与现金回收", "现金及受限资金", "有息债务及短期到期结构", "短债覆盖及流动性", "审计意见与持续经营披露"],
+    "noUniversalRiskThreshold": true
+  }
+}

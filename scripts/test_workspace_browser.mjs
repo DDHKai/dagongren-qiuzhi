@@ -54,7 +54,7 @@ try{
  assert.ok(await evaluate("document.getElementById('facts').textContent.includes('Example reports')"));
  assert.equal(await evaluate("document.querySelectorAll('#facts input:checked').length"),0);
  const market=join(dir,'synthetic-market.json');
- await writeFile(market,JSON.stringify({status:'synthetic-only',targetCompanies:100,companies:[],jobs:[{id:'https://www.zhipin.com/job_detail/synthetic.html',companyKey:null,source:{url:'https://www.zhipin.com/job_detail/synthetic.html',title:'「示例岗位招聘」_示例公司',text:'示例岗位 20-30K\n杭州 3-5年 大专\n感兴趣\n职位描述\n负责Example reports及自动化报表整理\n双休\n竞争力分析',capturedAt:'synthetic'}}]}));
+ await writeFile(market,JSON.stringify({status:'synthetic-only',targetCompanies:100,companies:[{id:'/gongsi/synthetic.html',source:{url:'https://www.zhipin.com/gongsi/synthetic.html',title:'示例公司',text:'公司简介\n示例公司'}}],jobs:[{id:'https://www.zhipin.com/job_detail/synthetic.html',companyKey:'/gongsi/synthetic.html',source:{url:'https://www.zhipin.com/job_detail/synthetic.html',title:'「示例岗位招聘」_示例公司',text:'示例岗位 20-30K\n杭州 3-5年 大专\n感兴趣\n职位描述\n负责Example reports及自动化报表整理\n双休\n竞争力分析',capturedAt:'synthetic'}}]}));
  const dom3=await call('DOM.getDocument');const marketNode=await call('DOM.querySelector',{nodeId:dom3.root.nodeId,selector:'#marketFile'});
  await call('DOM.setFileInputFiles',{nodeId:marketNode.nodeId,files:[market]});
  await evaluate("document.getElementById('screenCity').value='杭州';document.getElementById('screenSalary').value='18';document.getElementById('screenWeekend').checked=true;document.getElementById('screenEducation').value='大专';document.getElementById('screenConfirmed').checked=true;document.getElementById('screen').click()");
@@ -80,11 +80,28 @@ try{
  await evaluate("document.querySelector('#abilityDirections select').value='not-want';document.getElementById('saveDirections').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('不自动更改长期画像')"))break;await pause(100)}
  assert.equal(await evaluate("current.abilityReport.feedbackScope"),'current-report-only-not-long-term-profile');
- await call('Page.reload');await pause(500);await evaluate("document.getElementById('load').click()");
+ await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.querySelectorAll('#facts input:disabled').length===1"))break;await pause(100)}
  assert.equal(await evaluate("document.querySelectorAll('#facts input:disabled').length"),1);
+ assert.equal(await evaluate("document.getElementById('researchCompany').options.length"),1);
+ await evaluate("document.getElementById('companyContext').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('companyText').textContent.includes('示例公司')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('companyText').textContent.includes('示例公司')"));
+ await evaluate("document.getElementById('captureFinance').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.researchReport?.companyGrowth==='unknown'"))break;await pause(100)}
+ assert.equal(await evaluate("current.researchReport.automaticScore"),null);
+ await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('researchStatus').textContent.includes('未上市或身份待核实')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('researchStatus').textContent.includes('未上市或身份待核实')"));
  assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
  const shot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'workspace.png'),Buffer.from(shot.data,'base64'));
- console.log('PASS real Chrome: intake, prescreen, unreviewed ability draft, stale-evidence guard, explicit human review and report-only direction feedback.');
+ await evaluate("document.getElementById('researchMode').value='official';document.getElementById('researchMode').dispatchEvent(new Event('change'));document.getElementById('captureFinance').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('确认官方请求')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('status').textContent.includes('确认官方请求')"));
+ assert.equal(await evaluate("current.researchReports.length"),1);
+ await evaluate("document.getElementById('researchMode').value='unknown';document.getElementById('researchMode').dispatchEvent(new Event('change'));document.getElementById('researchCompany').scrollIntoView()");
+ const financeShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'company-research.png'),Buffer.from(financeShot.data,'base64'));
+
+ console.log('PASS real Chrome: intake, prescreen, unreviewed ability draft, stale-evidence guard, explicit human review report-only direction feedback, company context/unknown persistence and explicit official-request guard.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

@@ -75,6 +75,33 @@ class WorkspaceTests(unittest.TestCase):
         payload.update(reportVersion=d['abilityVersion'],contextHash=r['contextHash'])
         status,b=self.request('/api/ability-review',payload);self.assertEqual(status,200)
         self.assertEqual(json.loads(b)['abilityReport']['reviewStatus'],'human-reviewed')
+    def test_company_research_unknown_and_versioned_official_review(self):
+        from unittest.mock import patch
+        from test_prescreen_jobs import job
+        from test_company_research import meta,RAW
+        from company_research import capture
+        ident=json.loads(self.upload()[1])['id'];j=job(body='示例职责');cid='/gongsi/synthetic.html';j['companyKey']=cid
+        checkpoint={'jobs':[j],'companies':[{'id':cid,'source':{'url':'https://www.zhipin.com'+cid,'text':'工商信息：示例上市公司','title':'示例公司'}}]}
+        screen={'id':ident,'policyConfirmed':True,'checkpoint':checkpoint,'policy':{'weekend':'double'}}
+        self.assertEqual(self.request('/api/screen',screen)[0],200)
+        self.assertEqual(self.request('/api/company-context?id='+ident+'&companyId='+cid)[0],200)
+        payload={'id':ident,'companyId':cid,'mode':'unknown'}
+        status,b=self.request('/api/research-capture',payload);self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['researchReport']['companyGrowth'],'unknown')
+        payload.update(mode='official',metadata=meta(),employerQuote='工商信息：示例上市公司')
+        self.assertEqual(self.request('/api/research-capture',payload)[0],400)
+        payload['downloadConfirmed']=True
+        with patch('workspace_server.finance_capture',side_effect=lambda m,p:capture(m,p,lambda m:(RAW,m['officialDocumentUrl']))):
+            status,b=self.request('/api/research-capture',payload)
+        self.assertEqual(status,200);d=json.loads(b);unit=d['researchDocument']['units'][0]['id']
+        review={'reviewerConfirmed':True,'identityEvidence':{'unitId':unit,'quote':'示例上市公司'},'periodEvidence':{'unitId':unit,'quote':'2026年第三季度'},'metrics':[]}
+        rp={'id':ident,'reportVersion':d['researchVersion'],'review':review}
+        status,b=self.request('/api/research-review',rp);self.assertEqual(status,200)
+        d=json.loads(b);self.assertEqual(d['researchReport']['status'],'human-reviewed-evidence');self.assertEqual(len(d['researchReports']),3)
+        self.assertEqual(self.request('/api/research-review',rp)[0],400)
+        self.request('/api/screen',screen);d=json.loads(self.request('/api/state?id='+ident)[1])
+        self.assertTrue(d['researchReport']['marketEvidenceChanged']);rp['reportVersion']=d['researchVersion']
+        self.assertEqual(self.request('/api/research-review',rp)[0],400)
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')

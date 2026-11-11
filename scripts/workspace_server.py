@@ -15,6 +15,7 @@ from resume_workspace import create as intake,confirm,save,validate_conditions
 from resume_document import create as extract,apply_mapping
 from prescreen_jobs import run as prescreen
 from ability_review import generate as ability_generate,review as ability_review,feedback as ability_feedback,load_facts,hash_json
+from company_research import capture as finance_capture,review as finance_review,sha as finance_sha,metadata as finance_metadata
 
 class Workspace:
     def __init__(self,path):self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True)
@@ -59,7 +60,47 @@ class Workspace:
             r=json.loads((p/meta['abilityReports'][-1]/'report.json').read_text(encoding='utf-8'))
             r['stale']=r['candidateVersion']!=meta['versions'][-1] or r['marketVersion']!=meta['marketReports'][-1] or r['context']['candidateFactsHash']!=hash_json(load_facts(p/meta['versions'][-1]))
             result['abilityReport']=r;result['abilityVersion']=meta['abilityReports'][-1]
+        if meta.get('researchReports'):
+            v=meta['researchReports'][-1];r=json.loads((p/v/'report.json').read_text(encoding='utf-8'))
+            r['marketEvidenceChanged']=r.get('marketVersion')!=meta.get('marketReports',[])[-1]
+            result['researchReport']=r;result['researchVersion']=v
+            capture_version=r.get('captureVersion')
+            if capture_version and (p/capture_version/'extraction.json').exists():result['researchDocument']=json.loads((p/capture_version/'extraction.json').read_text(encoding='utf-8'))
         return result
+    def company_context(self,ident,company_id):
+        p=self.folder(ident);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        market=meta['marketReports'][-1];data=json.loads((p/market/'checkpoint.json').read_text(encoding='utf-8'))
+        found=[c for c in data['companies'] if c['id']==company_id]
+        if len(found)!=1:raise ValueError('Company outside latest evidence')
+        return {'company':found[0],'marketVersion':market}
+    def capture_finance(self,payload):
+        if payload.get('mode') not in ('unknown','official'):raise ValueError('Explicit research mode required')
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        context=self.company_context(payload['id'],payload['companyId'])
+        version='research-'+secrets.token_hex(16);out=p/version
+        if payload.get('mode')=='unknown':
+            out.mkdir();report={'status':'unlisted-or-identity-unverified','companyGrowth':'unknown','riskAssessment':'unknown','automaticScore':None}
+        else:
+            if payload.get('downloadConfirmed') is not True:raise ValueError('Explicit official-site request permission required')
+            m=finance_metadata(payload['metadata']);quote=payload['employerQuote'];source=context['company']['source']
+            if not isinstance(quote,str) or not quote.strip() or quote not in source['text'] or m['employerLegalName'] not in quote:raise ValueError('Employer needs exact company evidence')
+            try:report=finance_capture(m,out)
+            except Exception:
+                out.mkdir(exist_ok=True);report={'status':'official-source-unavailable-or-unverified','metadata':m,'companyGrowth':'unknown','riskAssessment':'unknown','automaticScore':None}
+            report['captureVersion']=version;report['employerEvidence']={'quote':quote,'sourceUrl':source['url'],'sourceSha256':finance_sha(source['text'].encode())}
+        report.update(companyId=payload['companyId'],companyName=context['company']['source'].get('title') or '公司名称待核实',marketVersion=context['marketVersion'])
+        save(out/'report.json',report);meta.setdefault('researchReports',[]).append(version);save(p/'case.json',meta)
+        return self.state(payload['id'])
+    def review_finance(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        if payload['reportVersion']!=meta['researchReports'][-1]:raise ValueError('Stale financial review')
+        old=json.loads((p/meta['researchReports'][-1]/'report.json').read_text(encoding='utf-8'))
+        if old['marketVersion']!=meta['marketReports'][-1]:raise ValueError('Employer evidence changed; recheck relationship')
+        capture_version=old['captureVersion'];version='research-'+secrets.token_hex(16);(p/version).mkdir()
+        report=finance_review(p/capture_version,payload['review'],p/version/'report.json')
+        report.update(captureVersion=capture_version,companyId=old['companyId'],companyName=old.get('companyName','公司名称待核实'),marketVersion=old['marketVersion'],employerEvidence=old['employerEvidence'])
+        save(p/version/'report.json',report);meta['researchReports'].append(version);save(p/'case.json',meta)
+        return self.state(payload['id'])
     def generate_ability(self,payload):
         p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
         candidate=meta['versions'][-1];market=meta['marketReports'][-1]
@@ -136,6 +177,7 @@ class Handler(BaseHTTPRequestHandler):
             with self.server.lock:
                 if route.path=='/api/list':data={'ids':self.server.workspace.listing()}
                 elif route.path=='/api/state':data=self.server.workspace.state(parse_qs(route.query)['id'][0])
+                elif route.path=='/api/company-context':data=self.server.workspace.company_context(parse_qs(route.query)['id'][0],parse_qs(route.query)['companyId'][0])
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except Exception:self.send(400,{'error':'request_failed_check_local_input'})
@@ -153,6 +195,8 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path=='/api/ability-generate':data=self.server.workspace.generate_ability(payload)
                 elif self.path=='/api/ability-review':data=self.server.workspace.review_ability(payload)
                 elif self.path=='/api/direction-feedback':data=self.server.workspace.direction_feedback(payload)
+                elif self.path=='/api/research-capture':data=self.server.workspace.capture_finance(payload)
+                elif self.path=='/api/research-review':data=self.server.workspace.review_finance(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})
