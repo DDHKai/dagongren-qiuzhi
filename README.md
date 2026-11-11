@@ -2,6 +2,8 @@
 
 当前实验版：0.1.1-experiment（版本入口VERSION）。
 
+桌面公开实验发布：[v0.1.1-desktop-experiment](https://github.com/DDHKai/dagongren-qiuzhi/releases/tag/v0.1.1-desktop-experiment)。推荐下载Release附件，校验后解压；[发布范围、安装与限制](docs/desktop-release.md)。
+
 当前跨设备测试快照为 **v0.1.1-test2**（应用版本仍为0.1.1-experiment），包含最新核验工具及MIT许可；请按[完整下载、部署、测试与回传指令](docs/device-run-request.md)执行。不要与旧v0.1.1-experiment标签混用。
 
 帮助有工作经验的求职者，将经历、岗位需求和公司证据放在一起，做有依据的选择。

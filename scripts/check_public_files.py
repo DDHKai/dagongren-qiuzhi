@@ -12,6 +12,7 @@ PUBLIC += ['VERSION','scripts/check_release_layout.py']
 PUBLIC += ['scripts/test_release_layout.py']
 PUBLIC += ['docs/device-run-request.md']
 PUBLIC += ['docs/test2-validation.md']
+PUBLIC += ['docs/desktop-release.md']
 
 def scan(root=ROOT):
     findings=[]
