@@ -4,6 +4,7 @@
 !/README.md
 !/LICENSE
 !/VERSION
+!/requirements-resume.txt
 !/CONTRIBUTING.md
 !/SECURITY.md
 !/start-windows.bat
@@ -25,6 +26,8 @@
 !/scripts/test_release_layout.py
 !/scripts/resume_workspace.py
 !/scripts/test_resume_workspace.py
+!/scripts/resume_document.py
+!/scripts/test_resume_document.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -42,6 +45,7 @@
 !/docs/test2-validation.md
 !/docs/desktop-release.md
 !/docs/real-job-roadmap.md
+!/docs/resume-document.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json

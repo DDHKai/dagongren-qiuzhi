@@ -15,6 +15,7 @@ def save(path,data):
 def create(source,conditions_path,output):
     source=Path(source);output=Path(output)
     if output.exists() and any(output.iterdir()):raise ValueError('Output directory must be empty')
+    if source.stat().st_size>5_000_000:raise ValueError('Resume exceeds 5MB')
     raw=source.read_bytes()
     if len(raw)>5_000_000:raise ValueError('Resume exceeds 5MB')
     text=raw.decode('utf-8-sig')
