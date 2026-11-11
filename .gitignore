@@ -31,6 +31,9 @@
 !/scripts/workspace_server.py
 !/scripts/test_workspace_server.py
 !/scripts/test_workspace_browser.mjs
+!/scripts/job_collector_core.mjs
+!/scripts/collect_jobs.mjs
+!/scripts/test_job_collector.mjs
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -51,10 +54,12 @@
 !/docs/real-job-roadmap.md
 !/docs/resume-document.md
 !/docs/private-workspace.md
+!/docs/collector-development.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json
 !/examples/synthetic-conditions.json
+!/examples/collector-config.json
 __pycache__/
 *.pyc
 *.sqlite3*

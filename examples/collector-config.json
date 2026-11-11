@@ -1,0 +1,7 @@
+{
+  "city": "101210100",
+  "queries": ["业务运营", "数据运营"],
+  "targetCompanies": 100,
+  "maxJobDetails": 200,
+  "delayMs": 1500
+}
