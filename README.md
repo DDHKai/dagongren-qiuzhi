@@ -52,6 +52,8 @@ python scripts/package_experiment.py
 
 ## 隐私与安全
 
+收到schema 2测试日志后，可运行 `python scripts/audit_test_log.py Windows-test-log.json --output audit-report.json`，自动检查合成分组、排序、事件和计数，输出通过/异常/证据不足。仅认证内部一致性，不代表T01–T10全覆盖或实机验证通过。详见[日志核验说明](docs/log-audit.md)。统一自检入口：`python scripts/verify_release.py`。
+
 演示页无模型调用、遥测或自动上传。Python模块可写本地数据库，不能宣称整个项目不落盘。真实简历、报告、会话、凭据、数据库及事实盐不公开；去姓名不等于匿名。逐文件白名单与扫描辅助人工审核，不保证绝对匿名。未来外部模型前须说明服务与必要字段并确认。见[证据边界](docs/开源边界与事实证据.md)、[安全反馈](SECURITY.md)。
 
 ## 参考、引用与许可

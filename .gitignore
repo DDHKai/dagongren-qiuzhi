@@ -20,6 +20,8 @@
 !/scripts/test_experiment.mjs
 !/scripts/desktop_launcher.py
 !/scripts/verify_release.py
+!/scripts/audit_test_log.py
+!/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
 !/web/
 /web/*
@@ -30,6 +32,7 @@
 !/docs/跨设备实验测试.md
 !/docs/desktop-testing.md
 !/docs/reference-structure.md
+!/docs/log-audit.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json

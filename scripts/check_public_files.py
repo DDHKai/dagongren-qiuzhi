@@ -7,6 +7,7 @@ PUBLIC=['.gitignore','README.md','docs/开源边界与事实证据.md','examples
 PUBLIC += ['web/index.html','docs/跨设备实验测试.md','scripts/package_experiment.py','scripts/test_experiment.mjs']
 PUBLIC += ['start-windows.bat','start-macos.command','scripts/desktop_launcher.py','scripts/test_desktop_launcher.py','docs/desktop-testing.md']
 PUBLIC += ['LICENSE','CONTRIBUTING.md','SECURITY.md','docs/reference-structure.md','scripts/verify_release.py']
+PUBLIC += ['scripts/audit_test_log.py','scripts/test_audit_test_log.py','docs/log-audit.md']
 
 def scan(root=ROOT):
     findings=[]

@@ -1,4 +1,4 @@
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
@@ -7,7 +7,8 @@ const element=()=>({children:[],value:'',textContent:'',innerHTML:'',append(...i
 const nodes=Object.fromEntries(['salary','weekend','sort','log','notice','results','apply','export','reset'].map(id=>[id,element()]));
 Object.assign(nodes.salary,{value:'18'});nodes.weekend.value='required';nodes.sort.value='fit';
 const window={addEventListener(){}};
-vm.runInNewContext(script,{window,document:{getElementById:id=>nodes[id],createElement:element},performance:{now:()=>1},console,Set,Blob,URL,setTimeout});
+const sandbox={window,document:{getElementById:id=>nodes[id],createElement:element},performance:{now:()=>1},console,Set,Blob,URL,setTimeout};
+vm.runInNewContext(script,sandbox);
 const {jobs,classify}=window.dagongrenTest;
 assert.deepEqual(Array.from(jobs,j=>classify(j,{salary:18,weekend:'required'}).group),[0,1,2,2,2,0]);
 assert.equal(classify(jobs[3],{salary:18,weekend:'ignore'}).group,0);
@@ -37,4 +38,9 @@ payload=window.dagongrenTest.exportPayload();
 assert.equal(payload.downloadStatus,'requested-not-confirmed');
 assert.ok(payload.events.every(e=>e.state&&e.state.conditions&&e.state.groups.length===3));
 assert.ok(!/fetch\(|XMLHttpRequest|localStorage|https?:\/\//.test(script));
+// Optional synthetic integration fixture; not a real browser download proof.
+if(process.argv[2]){
+  vm.runInNewContext("record('log_export_requested')",sandbox);
+  writeFileSync(process.argv[2],JSON.stringify(window.dagongrenTest.exportPayload(),null,2));
+}
 console.log('PASS: synthetic grouping, unknown handling, condition changes, reset, rendering smoke and no network/storage calls. DOM stub only; real Safari/Chrome QA remains necessary.');
