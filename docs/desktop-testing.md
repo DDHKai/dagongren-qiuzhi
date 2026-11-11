@@ -38,7 +38,7 @@ T04 Select pay, apply: order within groups reflects fixed salary first; unknown 
 
 T05 Select S01, then deselect: counts 1 then 0.
 
-T06 Pin a non-first item WITHIN its group: becomes first in that group, not globally first.
+T06 First restore 18 / required / fit and apply (retain this extra event). Trade-off group must be [S03,S04,S05]. Pin S04: it becomes first in that group, while global first remains S01. Do not retain T04 conditions for this specific fixture.
 
 T07 Dismiss S06: one card hidden. Reset: selection/hidden/pins cleared, current conditions retained (not reset to defaults).
 

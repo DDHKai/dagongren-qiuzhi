@@ -6,7 +6,7 @@
 
 帮助有工作经验的求职者，将经历、岗位需求和公司证据放在一起，做有依据的选择。
 
-**当前版本0.1.1-experiment：公开实验代码，不是完整自动求职产品。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。目标Windows/macOS，macOS实机尚待验证。
+**当前版本0.1.1-experiment：公开实验代码，不是完整自动求职产品。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。已收到Windows与Intel macOS的无头Chrome实机回传，具体环境与未测项见[验收记录](docs/test2-validation.md)。
 
 ## 当前能力
 
@@ -15,12 +15,12 @@
 | 条件分组、偏好排序、选择/隐藏、组内置顶 | 已实现；6家虚构公司 |
 | schema 2交互日志 | 已实现；人工导出合成状态 |
 | SQLite存储、去重、轮次、事实引用及证据ID | 独立模块；未接成完整网页后端，引用存在不证明判断正确 |
-| 双系统启动及端口重试 | 代码已实现；新版两系统实机回归待完成 |
+| 双系统启动及端口重试 | test2双系统自动化回传通过；人工有头体验仍未验证 |
 | 真实简历导入、AI匹配、岗位/财报采集、沟通投递 | 当前发布版不支持 |
 
 ## 快速体验
 
-[下载固定版本ZIP](https://github.com/DDHKai/dagongren-qiuzhi/archive/refs/tags/v0.1.1-experiment.zip)，解压到新目录。无需模型Key或BOSS账号，不输入个人资料。
+[下载固定测试快照ZIP](https://github.com/DDHKai/dagongren-qiuzhi/archive/refs/tags/v0.1.1-test2.zip)，解压到新目录。无需模型Key或BOSS账号，不输入个人资料。test2标签不随main更新；T06前置条件修订见main中的测试指令。
 
 - 浏览器打开 `web/index.html`，不覆盖启动器测试。
 - 已装Python 3.10+：Windows双击 `start-windows.bat`。
