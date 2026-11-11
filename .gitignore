@@ -40,6 +40,8 @@
 !/scripts/start_collector_chrome.py
 !/scripts/prescreen_jobs.py
 !/scripts/test_prescreen_jobs.py
+!/scripts/ability_review.py
+!/scripts/test_ability_review.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -62,6 +64,7 @@
 !/docs/private-workspace.md
 !/docs/collector-development.md
 !/docs/prescreen.md
+!/docs/ability-review.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json

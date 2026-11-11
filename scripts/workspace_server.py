@@ -14,6 +14,7 @@ from desktop_launcher import ROOT,Server
 from resume_workspace import create as intake,confirm,save,validate_conditions
 from resume_document import create as extract,apply_mapping
 from prescreen_jobs import run as prescreen
+from ability_review import generate as ability_generate,review as ability_review,feedback as ability_feedback,load_facts,hash_json
 
 class Workspace:
     def __init__(self,path):self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True)
@@ -54,7 +55,37 @@ class Workspace:
             result['conditions']=json.loads((p/v/'conditions.json').read_text(encoding='utf-8'))
             result['resume']=json.loads((p/v/'resume.json').read_text(encoding='utf-8'))
         if meta.get('marketReports'):result['marketReport']=json.loads((p/meta['marketReports'][-1]/'report.json').read_text(encoding='utf-8'))
+        if meta.get('abilityReports'):
+            r=json.loads((p/meta['abilityReports'][-1]/'report.json').read_text(encoding='utf-8'))
+            r['stale']=r['candidateVersion']!=meta['versions'][-1] or r['marketVersion']!=meta['marketReports'][-1] or r['context']['candidateFactsHash']!=hash_json(load_facts(p/meta['versions'][-1]))
+            result['abilityReport']=r;result['abilityVersion']=meta['abilityReports'][-1]
         return result
+    def generate_ability(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        candidate=meta['versions'][-1];market=meta['marketReports'][-1]
+        checkpoint=json.loads((p/market/'checkpoint.json').read_text(encoding='utf-8'))
+        jobs=[j for j in checkpoint['jobs'] if j['id']==payload['jobId']]
+        if len(jobs)!=1:raise ValueError('Job outside latest market evidence')
+        report=ability_generate(jobs[0],load_facts(p/candidate));report.update(candidateVersion=candidate,marketVersion=market)
+        version='ability-'+secrets.token_hex(16);(p/version).mkdir();save(p/version/'report.json',report)
+        meta.setdefault('abilityReports',[]).append(version);save(p/'case.json',meta)
+        return self.state(payload['id'])
+    def review_ability(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        if payload['reportVersion']!=meta['abilityReports'][-1]:raise ValueError('Stale report')
+        draft=json.loads((p/meta['abilityReports'][-1]/'report.json').read_text(encoding='utf-8'))
+        if draft['candidateVersion']!=meta['versions'][-1] or draft['marketVersion']!=meta['marketReports'][-1] or draft['context']['candidateFactsHash']!=hash_json(load_facts(p/meta['versions'][-1])):raise ValueError('Regenerate after evidence or confirmation change')
+        report=ability_review(draft,payload['items'],payload['contextHash'],payload.get('reviewerConfirmed'))
+        version='ability-'+secrets.token_hex(16);(p/version).mkdir();save(p/version/'report.json',report)
+        meta['abilityReports'].append(version);save(p/'case.json',meta)
+        return self.state(payload['id'])
+    def direction_feedback(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        if payload['reportVersion']!=meta['abilityReports'][-1]:raise ValueError('Stale report')
+        draft=json.loads((p/meta['abilityReports'][-1]/'report.json').read_text(encoding='utf-8'))
+        if draft['candidateVersion']!=meta['versions'][-1] or draft['marketVersion']!=meta['marketReports'][-1] or draft['context']['candidateFactsHash']!=hash_json(load_facts(p/meta['versions'][-1])):raise ValueError('Regenerate stale evidence')
+        report=ability_feedback(draft,payload['choices']);version='ability-'+secrets.token_hex(16);(p/version).mkdir();save(p/version/'report.json',report)
+        meta['abilityReports'].append(version);save(p/'case.json',meta);return self.state(payload['id'])
     def screen(self,payload):
         p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
         if payload.get('policyConfirmed') is not True:raise ValueError('Explicit policy confirmation required')
@@ -119,6 +150,9 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path=='/api/review':data=self.server.workspace.review(payload)
                 elif self.path=='/api/confirm':data=self.server.workspace.confirm(payload)
                 elif self.path=='/api/screen':data=self.server.workspace.screen(payload)
+                elif self.path=='/api/ability-generate':data=self.server.workspace.generate_ability(payload)
+                elif self.path=='/api/ability-review':data=self.server.workspace.review_ability(payload)
+                elif self.path=='/api/direction-feedback':data=self.server.workspace.direction_feedback(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})

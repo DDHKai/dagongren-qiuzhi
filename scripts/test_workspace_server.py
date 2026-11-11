@@ -59,6 +59,22 @@ class WorkspaceTests(unittest.TestCase):
         report=json.loads(b)['marketReport'];self.assertEqual(report['counts']['披露条件满足'],1)
         d=json.loads(self.request('/api/state?id='+ident)[1]);self.assertEqual(d['marketReport']['review'],'pending')
         self.assertEqual(len(d['marketReports']),1)
+    def test_ability_review_and_stale_candidate_confirmation(self):
+        from test_prescreen_jobs import job
+        d=json.loads(self.upload()[1]);ident=d['id'];fact=d['facts'][0]['id']
+        j=job(body='负责示例任务与报表整理工作')
+        self.request('/api/screen',{'id':ident,'policyConfirmed':True,'checkpoint':{'jobs':[j],'companies':[]},'policy':{'weekend':'double'}})
+        status,b=self.request('/api/ability-generate',{'id':ident,'jobId':j['id']});self.assertEqual(status,200)
+        draft=json.loads(b);r=draft['abilityReport'];self.assertFalse(r['stale'])
+        self.request('/api/confirm',{'id':ident,'factIds':[fact]})
+        stale=json.loads(self.request('/api/state?id='+ident)[1]);self.assertTrue(stale['abilityReport']['stale'])
+        payload={'id':ident,'reportVersion':draft['abilityVersion'],'contextHash':r['contextHash'],'reviewerConfirmed':True,
+            'items':[{'requirementId':r['requirements'][0]['id'],'decision':'supported','factIds':[fact],'rationale':'人工对照任务证据'}]}
+        self.assertEqual(self.request('/api/ability-review',payload)[0],400)
+        d=json.loads(self.request('/api/ability-generate',{'id':ident,'jobId':j['id']})[1]);r=d['abilityReport']
+        payload.update(reportVersion=d['abilityVersion'],contextHash=r['contextHash'])
+        status,b=self.request('/api/ability-review',payload);self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['abilityReport']['reviewStatus'],'human-reviewed')
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')
