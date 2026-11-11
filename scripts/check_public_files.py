@@ -10,6 +10,7 @@ PUBLIC += ['LICENSE','CONTRIBUTING.md','SECURITY.md','docs/reference-structure.m
 PUBLIC += ['scripts/audit_test_log.py','scripts/test_audit_test_log.py','docs/log-audit.md']
 PUBLIC += ['VERSION','scripts/check_release_layout.py']
 PUBLIC += ['scripts/test_release_layout.py']
+PUBLIC += ['docs/device-run-request.md']
 
 def scan(root=ROOT):
     findings=[]

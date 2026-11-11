@@ -36,6 +36,7 @@
 !/docs/desktop-testing.md
 !/docs/reference-structure.md
 !/docs/log-audit.md
+!/docs/device-run-request.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json
