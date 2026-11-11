@@ -23,6 +23,8 @@
 !/scripts/verify_release.py
 !/scripts/check_release_layout.py
 !/scripts/test_release_layout.py
+!/scripts/resume_workspace.py
+!/scripts/test_resume_workspace.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -39,9 +41,11 @@
 !/docs/device-run-request.md
 !/docs/test2-validation.md
 !/docs/desktop-release.md
+!/docs/real-job-roadmap.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json
+!/examples/synthetic-conditions.json
 __pycache__/
 *.pyc
 *.sqlite3*
