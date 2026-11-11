@@ -8,6 +8,7 @@ assert.throws(()=>validateConfig({...c,delayMs:1}));
 assert.throws(()=>ensureResume(s,{...c,queries:['changed']}));
 assert.throws(()=>checkPage({text:'请完成验证'}),/STOP/);
 assert.throws(()=>checkPage({text:'登录查看完整内容'}),/STOP/);
+assert.throws(()=>checkPage({text:'登录/注册'}),/STOP/);
 assert.equal(companyLink({...job,links:[{href:'https://www.zhipin.com/gongsi/recommend.html',text:'推荐公司'}]}),null);
 const cl={href:'https://www.zhipin.com/gongsi/sample.html',text:'示例主体'};
 assert.equal(companyLink({...job,companyLinks:[cl,{...cl,href:'https://www.zhipin.com/gongsi/other.html'}]}),null);

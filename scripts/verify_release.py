@@ -22,7 +22,7 @@ def main():
         subprocess.run([sys.executable,str(root/'scripts'/name)],cwd=root,check=True)
     node=shutil.which('node')
     if node:
-        for name in ['test_experiment.mjs','test_job_collector.mjs']:
+        for name in ['test_experiment.mjs','test_job_collector.mjs','test_collector_protocol.mjs']:
             subprocess.run([node,str(root/'scripts'/name)],cwd=root,check=True)
     else:print('SKIP JavaScript tests: Node unavailable; not a full validation')
     print('PASS local checks. Real-device testing and manual privacy review remain required.')
