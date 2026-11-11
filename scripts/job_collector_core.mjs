@@ -7,7 +7,7 @@ export function validateConfig(c){
  return c;
 }
 export function configHash(c){return createHash('sha256').update(JSON.stringify(validateConfig(c))).digest('hex')}
-export function checkpoint(c){return {schemaVersion:1,configHash:configHash(c),status:'pending',jobs:[],companies:[],failures:[],searches:[],attemptedJobs:[],review:'pending'}}
+export function checkpoint(c){return {schemaVersion:1,configHash:configHash(c),targetCompanies:c.targetCompanies,status:'pending',jobs:[],companies:[],failures:[],searches:[],attemptedJobs:[],review:'pending'}}
 export function ensureResume(saved,c){if(saved.schemaVersion!==1||saved.configHash!==configHash(c))throw Error('CONFIG_CHANGED_USE_NEW_OUTPUT');return saved}
 export function checkPage(s){if(/环境存在异常|安全验证|访问过于频繁|请完成验证/.test(s.text))throw Error('PLATFORM_CHECK_STOP');if(/登录查看完整内容|请登录后查看|登录\/注册/.test(s.text))throw Error('LOGIN_REQUIRED_STOP')}
 export function companyLink(job){

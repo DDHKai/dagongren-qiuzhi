@@ -38,6 +38,8 @@
 !/scripts/job_collector_dom.mjs
 !/scripts/test_job_collector_dom.mjs
 !/scripts/start_collector_chrome.py
+!/scripts/prescreen_jobs.py
+!/scripts/test_prescreen_jobs.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -59,11 +61,13 @@
 !/docs/resume-document.md
 !/docs/private-workspace.md
 !/docs/collector-development.md
+!/docs/prescreen.md
 !/examples/
 /examples/*
 !/examples/synthetic-resume.json
 !/examples/synthetic-conditions.json
 !/examples/collector-config.json
+!/examples/prescreen-policy.json
 __pycache__/
 *.pyc
 *.sqlite3*

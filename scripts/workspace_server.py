@@ -13,6 +13,7 @@ from urllib.parse import urlsplit,parse_qs
 from desktop_launcher import ROOT,Server
 from resume_workspace import create as intake,confirm,save,validate_conditions
 from resume_document import create as extract,apply_mapping
+from prescreen_jobs import run as prescreen
 
 class Workspace:
     def __init__(self,path):self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True)
@@ -52,7 +53,16 @@ class Workspace:
             result['facts']=json.loads((p/v/'facts.json').read_text(encoding='utf-8'))['facts']
             result['conditions']=json.loads((p/v/'conditions.json').read_text(encoding='utf-8'))
             result['resume']=json.loads((p/v/'resume.json').read_text(encoding='utf-8'))
+        if meta.get('marketReports'):result['marketReport']=json.loads((p/meta['marketReports'][-1]/'report.json').read_text(encoding='utf-8'))
         return result
+    def screen(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        if payload.get('policyConfirmed') is not True:raise ValueError('Explicit policy confirmation required')
+        report=prescreen(payload['checkpoint'],payload['policy'])
+        version='market-'+secrets.token_hex(16);folder=p/version;folder.mkdir()
+        save(folder/'checkpoint.json',payload['checkpoint']);save(folder/'report.json',report)
+        meta.setdefault('marketReports',[]).append(version);save(p/'case.json',meta)
+        return self.state(payload['id'])
     def review(self,payload):
         validate_conditions(payload['conditions'])
         p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
@@ -108,6 +118,7 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path=='/api/upload':data=self.server.workspace.upload(payload)
                 elif self.path=='/api/review':data=self.server.workspace.review(payload)
                 elif self.path=='/api/confirm':data=self.server.workspace.confirm(payload)
+                elif self.path=='/api/screen':data=self.server.workspace.screen(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})

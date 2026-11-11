@@ -49,6 +49,16 @@ class WorkspaceTests(unittest.TestCase):
     def test_failed_conditions_do_not_create_case(self):
         self.request('/api/upload',{'kind':'.txt','data':'YQ==','conditions':{}})
         self.assertEqual(json.loads(self.request('/api/list')[1])['ids'],[])
+    def test_prescreen_is_explicit_versioned_and_reloaded(self):
+        from test_prescreen_jobs import job
+        d=json.loads(self.upload()[1]);ident=d['id']
+        payload={'id':ident,'checkpoint':{'jobs':[job(body='双休')],'companies':[]},'policy':{'weekend':'double'}}
+        self.assertEqual(self.request('/api/screen',payload)[0],400)
+        payload['policyConfirmed']=True
+        status,b=self.request('/api/screen',payload);self.assertEqual(status,200)
+        report=json.loads(b)['marketReport'];self.assertEqual(report['counts']['披露条件满足'],1)
+        d=json.loads(self.request('/api/state?id='+ident)[1]);self.assertEqual(d['marketReport']['review'],'pending')
+        self.assertEqual(len(d['marketReports']),1)
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')

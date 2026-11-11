@@ -12,6 +12,8 @@
 
 ## 当前能力
 
+main新增[真实岗位条件预筛](docs/prescreen.md)：可在本地工作区导入采集检查点，明确选择固定底薪/发布区间等口径，展示符合、未知、冲突及原文引用。仅限所配置条件，不是AI能力匹配，不等于最终推荐，真实报告保存在本机。
+
 main现有[本地真实简历工作区](docs/private-workspace.md)：`start-windows.bat --workspace`或`sh ./start-macos.command --workspace`。支持文件导入、页/段审阅、字段原文映射、条件保存与逐项事实确认，数据落在本机私有目录。尚未接入真实岗位或模型，macOS新工作区仍待验证。下表主要描述既有合成实验发布，不把main新能力冒称已进入旧Release。
 
 main新增[PDF/DOCX原文提取与人工字段校对](docs/resume-document.md)：PDF可选pypdf依赖，保留页/段引用、显式映射及不可覆盖的校对版本；不含OCR或自动履历识别，也尚未接入网页。

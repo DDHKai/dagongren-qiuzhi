@@ -53,11 +53,22 @@ try{
  for(let i=0;i<100;i++){if(await evaluate("document.querySelectorAll('#facts input').length===1 && document.getElementById('facts').textContent.includes('Example reports')"))break;await pause(100)}
  assert.ok(await evaluate("document.getElementById('facts').textContent.includes('Example reports')"));
  assert.equal(await evaluate("document.querySelectorAll('#facts input:checked').length"),0);
+ const market=join(dir,'synthetic-market.json');
+ await writeFile(market,JSON.stringify({status:'synthetic-only',targetCompanies:100,companies:[],jobs:[{id:'https://www.zhipin.com/job_detail/synthetic.html',companyKey:null,source:{url:'https://www.zhipin.com/job_detail/synthetic.html',title:'「示例岗位招聘」_示例公司',text:'示例岗位 20-30K\n杭州 3-5年 大专\n感兴趣\n职位描述\n双休\n竞争力分析',capturedAt:'synthetic'}}]}));
+ const dom3=await call('DOM.getDocument');const marketNode=await call('DOM.querySelector',{nodeId:dom3.root.nodeId,selector:'#marketFile'});
+ await call('DOM.setFileInputFiles',{nodeId:marketNode.nodeId,files:[market]});
+ await evaluate("document.getElementById('screenCity').value='杭州';document.getElementById('screenSalary').value='18';document.getElementById('screenWeekend').checked=true;document.getElementById('screenEducation').value='大专';document.getElementById('screenConfirmed').checked=true;document.getElementById('screen').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('marketReport').textContent.includes('值得核实（1）')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('marketReport').textContent.includes('薪资：未确认')"));
+ const caseId=await evaluate('current.id');await call('Page.reload');await pause(600);
+ await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('marketReport').textContent.includes('值得核实（1）')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('marketReport').textContent.includes('值得核实（1）')"));
  await call('Page.reload');await pause(500);await evaluate("document.getElementById('load').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.querySelectorAll('#facts input:disabled').length===1"))break;await pause(100)}
  assert.equal(await evaluate("document.querySelectorAll('#facts input:disabled').length"),1);
  assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
  const shot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'workspace.png'),Buffer.from(shot.data,'base64'));
- console.log('PASS real Chrome: TXT import/save/confirm/reload; DOCX import/evidence mapping/save; no default confirmation or horizontal overflow.');
+ console.log('PASS real Chrome: TXT/DOCX intake review, persistence, explicit-policy prescreen, unknown fixed pay, saved report reload, no horizontal overflow.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

@@ -20,6 +20,7 @@ PUBLIC += ['scripts/job_collector_core.mjs','scripts/collect_jobs.mjs','scripts/
 PUBLIC += ['scripts/test_collector_protocol.mjs']
 PUBLIC += ['scripts/job_collector_dom.mjs','scripts/test_job_collector_dom.mjs']
 PUBLIC += ['scripts/start_collector_chrome.py']
+PUBLIC += ['scripts/prescreen_jobs.py','scripts/test_prescreen_jobs.py','examples/prescreen-policy.json','docs/prescreen.md']
 
 def scan(root=ROOT):
     findings=[]
