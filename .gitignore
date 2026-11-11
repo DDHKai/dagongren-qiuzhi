@@ -3,6 +3,7 @@
 !/.gitignore
 !/README.md
 !/LICENSE
+!/VERSION
 !/CONTRIBUTING.md
 !/SECURITY.md
 !/start-windows.bat
@@ -20,6 +21,8 @@
 !/scripts/test_experiment.mjs
 !/scripts/desktop_launcher.py
 !/scripts/verify_release.py
+!/scripts/check_release_layout.py
+!/scripts/test_release_layout.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py

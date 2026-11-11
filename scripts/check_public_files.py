@@ -8,6 +8,8 @@ PUBLIC += ['web/index.html','docs/跨设备实验测试.md','scripts/package_exp
 PUBLIC += ['start-windows.bat','start-macos.command','scripts/desktop_launcher.py','scripts/test_desktop_launcher.py','docs/desktop-testing.md']
 PUBLIC += ['LICENSE','CONTRIBUTING.md','SECURITY.md','docs/reference-structure.md','scripts/verify_release.py']
 PUBLIC += ['scripts/audit_test_log.py','scripts/test_audit_test_log.py','docs/log-audit.md']
+PUBLIC += ['VERSION','scripts/check_release_layout.py']
+PUBLIC += ['scripts/test_release_layout.py']
 
 def scan(root=ROOT):
     findings=[]

@@ -1,5 +1,7 @@
 # 打工人 · 求职决策助手
 
+当前实验版：0.1.1-experiment（版本入口VERSION）。
+
 帮助有工作经验的求职者，将经历、岗位需求和公司证据放在一起，做有依据的选择。
 
 **当前版本0.1.1-experiment：公开实验代码，不是完整自动求职产品。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。目标Windows/macOS，macOS实机尚待验证。
@@ -34,6 +36,8 @@
 公司研究区分行业、公司和岗位，关注现金回收、短债、持续经营，不以股价代替经营。财报计划主源：A股[巨潮](https://www.cninfo.com.cn/new/index)、港股[披露易](https://www.hkexnews.hk/index_c.htm)、美股[SEC EDGAR](https://www.sec.gov/search-filings)，当前没有自动适配器。未来外部动作须具体授权、刷新和结果证据，点击不等于成功。
 
 ## 测试与输出
+
+版本及文档标记检查：`python scripts/check_release_layout.py`。仅用公开包在新建带空格目录解压、校验清单并回归：`python scripts/check_release_layout.py --clean`。该演练使用本机已有解释器，不替代新机器或macOS实测。每次变更包内容需重新生成SHA256，不能只按版本名认定包相同。
 
 Python 3.10+标准库，不需要第三方Python依赖：
 

@@ -54,7 +54,8 @@ def main():
         p.error('Port must be between 1024 and 65516')
     with bind_server(ROOT/'web', a.port) as server:
         url = 'http://127.0.0.1:'+str(server.server_address[1])+'/'
-        print('Dagongren 0.1.1-experiment\n'+url+'\nLocal only. Ctrl+C to stop.',flush=True)
+        version=(ROOT/'VERSION').read_text(encoding='utf-8').strip()
+        print('Dagongren '+version+'\n'+url+'\nLocal only. Ctrl+C to stop.',flush=True)
         if not a.no_browser:
             timer = threading.Timer(0.3, lambda:webbrowser.open(url))
             timer.daemon = True

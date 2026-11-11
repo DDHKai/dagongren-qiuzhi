@@ -6,6 +6,8 @@ import unittest
 from desktop_launcher import bind_server, ROOT
 
 class LauncherTests(unittest.TestCase):
+    def setUp(self):
+        (ROOT/'data/test-tmp').mkdir(parents=True,exist_ok=True)
     def test_actual_bind_retry_and_static_root(self):
         first=bind_server(ROOT/'web',0,1)
         port=first.server_address[1]
@@ -33,5 +35,10 @@ class LauncherTests(unittest.TestCase):
     def test_missing_web_fails(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'data/test-tmp') as d:
             with self.assertRaises(FileNotFoundError):bind_server(Path(d),0,1)
+    def test_all_requested_ports_occupied(self):
+        first=bind_server(ROOT/'web',0,1)
+        try:
+            with self.assertRaises(OSError):bind_server(ROOT/'web',first.server_address[1],1)
+        finally:first.server_close()
 
 if __name__=='__main__':unittest.main()
