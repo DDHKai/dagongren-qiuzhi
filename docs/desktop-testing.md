@@ -54,4 +54,4 @@ Send exported dagongren-test-log.json renamed Windows-test-log.json or macOS-tes
 
 Existing tests: run Python scripts/test_project_store.py, test_review_store.py, test_candidate_facts.py, test_desktop_launcher.py; optional Node 18+ `node scripts/test_experiment.mjs`. Automated JS tests use a DOM stub, not real browser rendering. Windows/macOS real-browser and startup tests remain separate and must be returned by testers.
 
-Known limitation: open-source license remains undecided; public experiment is not a grant of unrestricted reuse. Static page can also be opened directly without Python; then launcher/port tests are not covered. Launch failures on machines without Python are expected prerequisites, not automatic installation. No personal data should be entered.
+Current main branch uses MIT; see root LICENSE. Historical tags retain their original license state. Static page can also be opened directly without Python; then launcher/port tests are not covered. Launch failures on machines without Python are expected prerequisites, not automatic installation. No personal data should be entered.

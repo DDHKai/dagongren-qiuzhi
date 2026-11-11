@@ -1,39 +1,71 @@
-# 求职决策助手（原型）
+# 打工人 · 求职决策助手
 
-## 桌面实验测试版 0.1.1-experiment（Windows / macOS）
+帮助有工作经验的求职者，将经历、岗位需求和公司证据放在一起，做有依据的选择。
 
-使用已有Python 3.10+。Windows运行`start-windows.bat`；macOS在解压目录终端运行`sh ./start-macos.command`。仅监听本机，实际绑定失败时切换端口，Ctrl+C停止。不捆绑Python，不宣称虚拟环境独立于其原安装位置。无Python时仍可直接打开`web/index.html`，但不覆盖启动器测试。
+**当前版本0.1.1-experiment：公开实验代码，不是完整自动求职产品。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。目标Windows/macOS，macOS实机尚待验证。
 
-新版日志schema 2包含合成条件、分组、选择/隐藏和校验失败原因，可用于重建交互；下载请求不等于保存成功。无网络回传，无真实简历输入。按[桌面测试步骤](docs/desktop-testing.md)执行T01–T10并回传JSON及系统/浏览器信息。macOS支持入口已编写，实机部署仍待验证；不是已验证跨平台完整求职产品。
+## 当前能力
 
-## 历史 0.1.0-experiment
+| 能力 | 实际状态 |
+| --- | --- |
+| 条件分组、偏好排序、选择/隐藏、组内置顶 | 已实现；6家虚构公司 |
+| schema 2交互日志 | 已实现；人工导出合成状态 |
+| SQLite存储、去重、轮次、事实引用及证据ID | 独立模块；未接成完整网页后端，引用存在不证明判断正确 |
+| 双系统启动及端口重试 | 代码已实现；新版两系统实机回归待完成 |
+| 真实简历导入、AI匹配、岗位/财报采集、沟通投递 | 当前发布版不支持 |
 
-浏览器打开 `web/index.html`，可使用完全合成数据测试条件分组、排序、选择及日志导出。无依赖、无模型调用、无外部操作。Windows可直接打开；iOS推荐Safari访问静态托管页面，具体步骤及日志回传见[跨设备实验测试](docs/跨设备实验测试.md)。这不是完整求职MVP，也未声称iOS支持桌面岗位采集。
+## 快速体验
 
-干净打包：`python scripts/package_experiment.py`，仅打包经扫描的公开白名单文件，生成ZIP、清单及SHA256到本地dist目录。GitHub源代码ZIP也包含测试页；下载后无需构建。
+[下载固定版本ZIP](https://github.com/DDHKai/dagongren-qiuzhi/archive/refs/tags/v0.1.1-experiment.zip)，解压到新目录。无需模型Key或BOSS账号，不输入个人资料。
 
-将简历事实、岗位要求及公司公开资料分开保存，支持有依据的求职判断。当前是本地原型，不是完整自动求职产品。
+- 浏览器打开 `web/index.html`，不覆盖启动器测试。
+- 已装Python 3.10+：Windows双击 `start-windows.bat`。
+- macOS在解压目录执行 `sh ./start-macos.command`，需要已有Python 3.10+。
+- 仅监听本机，打印实际端口，Ctrl+C停止。不捆绑Python，不宣称venv独立于原安装位置。
 
-## 开源与隐私
+完整步骤和T01–T10见[桌面测试](docs/desktop-testing.md)。没有签名安装包、自动更新或云服务。旧标签不自动包含main新增文档。
 
-仅发布经过审核的通用模块和合成样例。真实简历、个人报告、登录状态、来源原文、数据库和本机配置不提交。姓名替换并不意味着履历已匿名，组合经历和业绩也可能识别个人。
+## 设计方向（未完整实现）
 
-当前`.gitignore`按允许清单开放少量代码；旧试跑脚本仍留本地且默认排除，迁移为通用模块后才逐项纳入。发布前运行`python scripts/check_public_files.py`，检查暂存文件清单并人工复核；忽略规则不会移除已经跟踪或历史提交的数据。本目录已使用 Git 管理版本，公开仓库为 https://github.com/DDHKai/dagongren-qiuzhi 。仅同步上述白名单文件，真实数据继续保留本地。许可证在正式发布前选定。
+经历梳理 → 条件确认 → 市场搜索 → 岗位与公司研究 → 用户选择 → 授权操作与反馈。
 
-## 已有通用模块
+默认100家不同公司、目标10优选+10候选，不足不凑数。条件分必须、偏好、不在意。岗位能力、待遇、公司经营分开，不设总匹配分；未知不记负面、人数不是越大越好。推荐解释真实经历交集、核实问题和差距，保留自主排序。
 
-- `scripts/project_store.py`：SQLite来源存储、去重与轮次阶段。
-- `scripts/review_store.py`：事实、推断和未知的引用校验。
-- `scripts/candidate_facts.py`：本地稳定证据ID与草稿关联。
-- `examples/synthetic-resume.json`：完全合成的最小样例。
+公司研究区分行业、公司和岗位，关注现金回收、短债、持续经营，不以股价代替经营。财报计划主源：A股[巨潮](https://www.cninfo.com.cn/new/index)、港股[披露易](https://www.hkexnews.hk/index_c.htm)、美股[SEC EDGAR](https://www.sec.gov/search-filings)，当前没有自动适配器。未来外部动作须具体授权、刷新和结果证据，点击不等于成功。
 
-需要Python3.10+，上述模块使用标准库。测试：
+## 测试与输出
+
+Python 3.10+标准库，不需要第三方Python依赖：
 
 ```text
 python scripts/test_project_store.py
 python scripts/test_review_store.py
 python scripts/test_candidate_facts.py
+python scripts/test_desktop_launcher.py
 python scripts/check_public_files.py
+python scripts/package_experiment.py
 ```
 
-候选事实ID使用本地随机盐，引用校验只证明文字存在，不代表判断正确。迁移命令仍面向本机试跑目录，完整跨用户入口、自动采集与发布打包尚待实现。
+可选Node 18+：`node scripts/test_experiment.mjs`，DOM桩检查不替代浏览器。打包白名单文件，输出ZIP、清单与SHA256至dist；自制ZIP与GitHub源码ZIP不应混用校验值。
+
+导出dagongren-test-log.json，附系统/浏览器及失败步骤人工回传。日志内存保存、刷新清空；下载请求不代表实际保存。日志不证明全部断言通过或人类决策时间改善。
+
+## 隐私与安全
+
+演示页无模型调用、遥测或自动上传。Python模块可写本地数据库，不能宣称整个项目不落盘。真实简历、报告、会话、凭据、数据库及事实盐不公开；去姓名不等于匿名。逐文件白名单与扫描辅助人工审核，不保证绝对匿名。未来外部模型前须说明服务与必要字段并确认。见[证据边界](docs/开源边界与事实证据.md)、[安全反馈](SECURITY.md)。
+
+## 参考、引用与许可
+
+文档及产品研究参考[求职舱](https://github.com/kyle-kw/ai-job-app)、[自动投递项目](https://github.com/bazxhy/Automated-Resume-Submission)、[采集工具](https://github.com/eatmoreduck/boss-zhipin-scraper)。本次文本独立撰写，当前公开实现未引入三库代码/资源；参考不是依赖，不暗示作者合作或背书。未来复用须逐文件核对许可、版权和修改记录。详见[结构拆解](docs/reference-structure.md)。
+
+原创公开内容按[MIT许可证](LICENSE)提供；第三方内容不因此重新授权。
+
+## 使用边界与免责声明
+
+实验信息不保证岗位有效、待遇兑现、匹配准确、经营安全或面试录用。招聘披露不是个人报价，集团财报不是实际雇主独立财务。重要判断应核实原始资料，必要时寻求专业意见。
+
+本项目不是BOSS、交易所或监管机构官方产品，未获其背书。未来平台访问须遵守适用规则、授权和平台协议，不使用他人会话、不绕过验证、不制造不合理访问负担。免责声明不替代应承担的义务，也不免除适用法律下不可免除的责任；按现状条款见MIT原文。
+
+## 反馈与贡献
+
+请提供版本、最小复现、预期/实际及合成日志，不在公开Issue发送个人履历、Cookie、令牌或私人路径。[贡献说明](CONTRIBUTING.md)列明审查和第三方归属要求。

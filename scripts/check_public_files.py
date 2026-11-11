@@ -6,6 +6,7 @@ from project_store import ROOT
 PUBLIC=['.gitignore','README.md','docs/开源边界与事实证据.md','examples/synthetic-resume.json']+['scripts/'+x for x in ['project_store.py','review_store.py','candidate_facts.py','test_project_store.py','test_review_store.py','test_candidate_facts.py','check_public_files.py']]
 PUBLIC += ['web/index.html','docs/跨设备实验测试.md','scripts/package_experiment.py','scripts/test_experiment.mjs']
 PUBLIC += ['start-windows.bat','start-macos.command','scripts/desktop_launcher.py','scripts/test_desktop_launcher.py','docs/desktop-testing.md']
+PUBLIC += ['LICENSE','CONTRIBUTING.md','SECURITY.md','docs/reference-structure.md','scripts/verify_release.py']
 
 def scan(root=ROOT):
     findings=[]
