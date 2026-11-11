@@ -12,6 +12,16 @@ def save(path,data):
     tmp.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     tmp.replace(path)
 
+def validate_conditions(conditions):
+    if not isinstance(conditions,dict) or set(conditions)!={'must','prefer','ignore'}:raise ValueError('Conditions require must/prefer/ignore')
+    seen=set()
+    for group in conditions.values():
+        if not isinstance(group,list):raise ValueError('Condition groups must be lists')
+        for item in group:
+            if not isinstance(item,str) or not item.strip() or item.strip() in seen:raise ValueError('Conditions must be nonempty, unique text')
+            seen.add(item.strip())
+    return conditions
+
 def create(source,conditions_path,output):
     source=Path(source);output=Path(output)
     if output.exists() and any(output.iterdir()):raise ValueError('Output directory must be empty')
@@ -29,13 +39,7 @@ def create(source,conditions_path,output):
         for field in ('responsibilitiesRaw','achievementsRaw'):
             if exp.get(field) is not None and not isinstance(exp[field],str):raise ValueError('Evidence fields must be text')
     conditions=json.loads(Path(conditions_path).read_text(encoding='utf-8-sig'))
-    if not isinstance(conditions,dict) or set(conditions)!={'must','prefer','ignore'}:raise ValueError('Conditions require must/prefer/ignore')
-    seen=set()
-    for group in conditions.values():
-        if not isinstance(group,list):raise ValueError('Condition groups must be lists')
-        for item in group:
-            if not isinstance(item,str) or not item.strip() or item.strip() in seen:raise ValueError('Conditions must be nonempty, unique text')
-            seen.add(item.strip())
+    validate_conditions(conditions)
     salt=secrets.token_bytes(32)
     h=digest(json.dumps(resume,ensure_ascii=False,sort_keys=True).encode())
     facts=extract_facts(resume,salt,h)

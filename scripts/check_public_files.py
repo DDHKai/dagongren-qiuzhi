@@ -15,6 +15,7 @@ PUBLIC += ['docs/test2-validation.md']
 PUBLIC += ['docs/desktop-release.md']
 PUBLIC += ['scripts/resume_workspace.py','scripts/test_resume_workspace.py','examples/synthetic-conditions.json','docs/real-job-roadmap.md']
 PUBLIC += ['scripts/resume_document.py','scripts/test_resume_document.py','requirements-resume.txt','docs/resume-document.md']
+PUBLIC += ['scripts/workspace_server.py','scripts/test_workspace_server.py','scripts/test_workspace_browser.mjs','web/workspace.html','docs/private-workspace.md']
 
 def scan(root=ROOT):
     findings=[]

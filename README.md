@@ -12,6 +12,8 @@
 
 ## 当前能力
 
+main现有[本地真实简历工作区](docs/private-workspace.md)：`start-windows.bat --workspace`或`sh ./start-macos.command --workspace`。支持文件导入、页/段审阅、字段原文映射、条件保存与逐项事实确认，数据落在本机私有目录。尚未接入真实岗位或模型，macOS新工作区仍待验证。下表主要描述既有合成实验发布，不把main新能力冒称已进入旧Release。
+
 main新增[PDF/DOCX原文提取与人工字段校对](docs/resume-document.md)：PDF可选pypdf依赖，保留页/段引用、显式映射及不可覆盖的校对版本；不含OCR或自动履历识别，也尚未接入网页。
 
 main新增真实输入基础模块：`scripts/resume_workspace.py`可本地导入UTF-8文本/结构化JSON并保存待确认事实及条件；没有PDF/DOCX解析、网页入口或自动语义判断。它不属于此前固定实验Release。真实求职版的10阶段范围、命令与当前进度见[路线图](docs/real-job-roadmap.md)，不沿用合成发布的100%。

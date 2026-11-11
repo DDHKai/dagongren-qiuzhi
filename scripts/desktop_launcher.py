@@ -42,6 +42,8 @@ def main():
     p.add_argument('--port', type=int, default=8765)
     p.add_argument('--no-browser', action='store_true')
     p.add_argument('--diagnostics', action='store_true')
+    p.add_argument('--workspace', action='store_true', help='Enable private real-resume intake UI')
+    p.add_argument('--data', type=Path, default=ROOT/'data/private-web')
     a = p.parse_args()
     if a.diagnostics:
         # Explicit opt-in: output may contain personal directory names.
@@ -52,10 +54,15 @@ def main():
         p.error('Python 3.10+ required')
     if not 1024 <= a.port <= 65516:
         p.error('Port must be between 1024 and 65516')
-    with bind_server(ROOT/'web', a.port) as server:
+    if a.workspace:
+        from workspace_server import start
+        server=start(a.data,a.port)
+    else:server=bind_server(ROOT/'web', a.port)
+    with server:
         url = 'http://127.0.0.1:'+str(server.server_address[1])+'/'
         version=(ROOT/'VERSION').read_text(encoding='utf-8').strip()
         print('Dagongren '+version+'\n'+url+'\nLocal only. Ctrl+C to stop.',flush=True)
+        if a.workspace:print('Private resume workspace enabled; files persist locally. No model or external action.',flush=True)
         if not a.no_browser:
             timer = threading.Timer(0.3, lambda:webbrowser.open(url))
             timer.daemon = True
