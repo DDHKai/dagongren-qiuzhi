@@ -35,6 +35,9 @@
 !/scripts/collect_jobs.mjs
 !/scripts/test_job_collector.mjs
 !/scripts/test_collector_protocol.mjs
+!/scripts/job_collector_dom.mjs
+!/scripts/test_job_collector_dom.mjs
+!/scripts/start_collector_chrome.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py

@@ -18,6 +18,8 @@ PUBLIC += ['scripts/resume_document.py','scripts/test_resume_document.py','requi
 PUBLIC += ['scripts/workspace_server.py','scripts/test_workspace_server.py','scripts/test_workspace_browser.mjs','web/workspace.html','docs/private-workspace.md']
 PUBLIC += ['scripts/job_collector_core.mjs','scripts/collect_jobs.mjs','scripts/test_job_collector.mjs','examples/collector-config.json','docs/collector-development.md']
 PUBLIC += ['scripts/test_collector_protocol.mjs']
+PUBLIC += ['scripts/job_collector_dom.mjs','scripts/test_job_collector_dom.mjs']
+PUBLIC += ['scripts/start_collector_chrome.py']
 
 def scan(root=ROOT):
     findings=[]

@@ -2,9 +2,10 @@
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {validateConfig,checkpoint,ensureResume,checkPage,companyLink,addJob,canonicalJob} from './job_collector_core.mjs';
+import {snapshotExpression} from './job_collector_dom.mjs';
 const args=process.argv.slice(2),options={};for(let i=0;i<args.length;i+=2){if(!['--config','--output','--endpoint','--tab-id'].includes(args[i])||!args[i+1])throw Error('Usage: --config JSON --output PRIVATE_DIR [--endpoint http://127.0.0.1:PORT] [--tab-id ID]');options[args[i]]=args[i+1]}
 if(!options['--config']||!options['--output'])throw Error('CONFIG_AND_OUTPUT_REQUIRED');
-const cfg=validateConfig(JSON.parse(await readFile(options['--config'],'utf8')));
+const cfg=validateConfig(JSON.parse((await readFile(options['--config'],'utf8')).replace(/^\uFEFF/,'')));
 const endpoint=new URL(options['--endpoint']||'http://127.0.0.1:9333');
 if(endpoint.protocol!=='http:'||endpoint.hostname!=='127.0.0.1'||endpoint.username||endpoint.password||endpoint.pathname!=='/')throw Error('LOCAL_ENDPOINT_ONLY');
 const dir=resolve(options['--output']);await mkdir(dir,{recursive:true});const file=join(dir,'checkpoint.json');
@@ -24,7 +25,7 @@ ws.onmessage=e=>{const m=JSON.parse(e.data),p=waiting.get(m.id);if(p){clearTimeo
 ws.onclose=()=>{for(const p of waiting.values()){clearTimeout(p.timer);p.reject(Error('CDP_CLOSED'))}waiting.clear()};
 const call=(method,params={})=>new Promise((resolve,reject)=>{let id=++seq;const timer=setTimeout(()=>{waiting.delete(id);reject(Error('CDP_TIMEOUT'))},15000);waiting.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}))});
 const pause=()=>new Promise(r=>setTimeout(r,cfg.delayMs));
-async function read(){const r=await call('Runtime.evaluate',{expression:`JSON.stringify((()=>{const links=els=>[...els].map(a=>({text:a.innerText,href:a.href,cls:a.className}));const heading=[...document.querySelectorAll('h2,h3,h4')].find(e=>e.textContent.trim()==='公司基本信息');const scope=heading?.closest('.sider-company');return {url:location.href,title:document.title,text:document.body.innerText,links:links(document.querySelectorAll('a[href]')),companyLinks:scope?links(scope.querySelectorAll('a[href]')):[]}})())`,returnByValue:true});const s=JSON.parse(r.result.value);checkPage(s);return {...s,capturedAt:new Date().toISOString()}}
+async function read(){const r=await call('Runtime.evaluate',{expression:snapshotExpression,returnByValue:true});const s=JSON.parse(r.result.value);checkPage(s);return {...s,capturedAt:new Date().toISOString()}}
 async function go(url,ready){await call('Page.navigate',{url});for(let i=0;i<12;i++){await pause();const s=await read();if(ready(s))return s}throw Error('PAGE_INCOMPLETE')}
 try{
  await read(); // Check an existing verification/login wall BEFORE any navigation.
