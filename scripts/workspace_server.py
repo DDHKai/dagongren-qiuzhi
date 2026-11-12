@@ -16,6 +16,7 @@ from resume_document import create as extract,apply_mapping
 from prescreen_jobs import run as prescreen
 from ability_review import generate as ability_generate,review as ability_review,feedback as ability_feedback,load_facts,hash_json
 from company_research import capture as finance_capture,review as finance_review,sha as finance_sha,metadata as finance_metadata
+from result_report import generate as result_generate,context as result_context,choose as result_choose,reorder as result_reorder,summary as result_summary,html_report
 
 class Workspace:
     def __init__(self,path):self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True)
@@ -66,7 +67,36 @@ class Workspace:
             result['researchReport']=r;result['researchVersion']=v
             capture_version=r.get('captureVersion')
             if capture_version and (p/capture_version/'extraction.json').exists():result['researchDocument']=json.loads((p/capture_version/'extraction.json').read_text(encoding='utf-8'))
+        if meta.get('resultReports'):
+            v=meta['resultReports'][-1];r=json.loads((p/v/'report.json').read_text(encoding='utf-8'))
+            try:r['stale']=r['contextHash']!=result_context(p)['hash']
+            except Exception:r['stale']=True
+            result.update(resultReport=r,resultVersion=v,resultSummary=result_summary(r))
         return result
+    def save_result(self,ident,report):
+        p=self.folder(ident);meta=json.loads((p/'case.json').read_text(encoding='utf-8'));v='result-'+secrets.token_hex(16)
+        (p/v).mkdir();save(p/v/'report.json',report);meta.setdefault('resultReports',[]).append(v);save(p/'case.json',meta)
+        return self.state(ident)
+    def generate_result(self,payload):return self.save_result(payload['id'],result_generate(self.folder(payload['id']),payload.get('priority','fit')))
+    def checked_result(self,payload):
+        p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        if payload['reportVersion']!=meta['resultReports'][-1]:raise ValueError('Stale result version')
+        r=json.loads((p/meta['resultReports'][-1]/'report.json').read_text(encoding='utf-8'))
+        if r['contextHash']!=result_context(p)['hash']:raise ValueError('Evidence changed; regenerate result, no implicit choice carryover')
+        return r
+    def choose_result(self,payload):
+        r=self.checked_result(payload)
+        return self.save_result(payload['id'],result_choose(r,payload['jobId'],payload['bucket'],payload['reason'],payload.get('reviewerConfirmed')))
+    def reorder_result(self,payload):
+        if payload.get('orderConfirmed') is not True:raise ValueError('Explicit ordering required')
+        return self.save_result(payload['id'],result_reorder(self.checked_result(payload),payload['order']))
+    def export_result(self,payload):
+        if payload.get('privateExportConfirmed') is not True:raise ValueError('Private export requires explicit acknowledgement')
+        r=self.checked_result(payload);r['summary']=result_summary(r)
+        kind=payload['format']
+        if kind not in ('json','html'):raise ValueError('Unsupported export')
+        content=json.dumps(r,ensure_ascii=False,indent=2) if kind=='json' else html_report(r)
+        return {'filename':'private-job-report.'+kind,'content':content,'contentType':'application/json' if kind=='json' else 'text/html','status':'export-prepared-not-save-confirmed'}
     def company_context(self,ident,company_id):
         p=self.folder(ident);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
         market=meta['marketReports'][-1];data=json.loads((p/market/'checkpoint.json').read_text(encoding='utf-8'))
@@ -197,6 +227,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path=='/api/direction-feedback':data=self.server.workspace.direction_feedback(payload)
                 elif self.path=='/api/research-capture':data=self.server.workspace.capture_finance(payload)
                 elif self.path=='/api/research-review':data=self.server.workspace.review_finance(payload)
+                elif self.path=='/api/result-generate':data=self.server.workspace.generate_result(payload)
+                elif self.path=='/api/result-choose':data=self.server.workspace.choose_result(payload)
+                elif self.path=='/api/result-reorder':data=self.server.workspace.reorder_result(payload)
+                elif self.path=='/api/result-export':data=self.server.workspace.export_result(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})

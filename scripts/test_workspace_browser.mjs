@@ -3,7 +3,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {mkdtemp,mkdir,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const parent=join(root,'data/test-tmp');await mkdir(parent,{recursive:true});
@@ -102,6 +102,38 @@ try{
  await evaluate("document.getElementById('researchMode').value='unknown';document.getElementById('researchMode').dispatchEvent(new Event('change'));document.getElementById('researchCompany').scrollIntoView()");
  const financeShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'company-research.png'),Buffer.from(financeShot.data,'base64'));
 
- console.log('PASS real Chrome: intake, prescreen, unreviewed ability draft, stale-evidence guard, explicit human review report-only direction feedback, company context/unknown persistence and explicit official-request guard.');
+ await evaluate("document.getElementById('generateResult').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.resultReport?.jobs.length===1"))break;await pause(100)}
+ assert.equal(await evaluate("current.resultSummary.counts.preferred"),0);
+ assert.equal(await evaluate("current.resultReport.coverage.actualCompanies"),1);
+ assert.ok(await evaluate("document.getElementById('resultRows').textContent.includes('示例公司')"));
+ await evaluate("document.querySelector('#resultRows select').value='reserve';document.querySelector('#resultRows textarea').value='合成测试：任务相交，固定薪资待确认';[...document.querySelectorAll('#resultRows button')].find(b=>b.textContent==='确认并保存本轮选择').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.resultSummary.counts.reserve===1"))break;await pause(100)}
+ assert.equal(await evaluate("current.resultSummary.counts.reserve"),1);
+ await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.querySelector('#resultRows select')?.value==='reserve'"))break;await pause(100)}
+ assert.equal(await evaluate("document.querySelector('#resultRows select').value"),'reserve');
+ const downloadDir=join(dir,'downloads');await mkdir(downloadDir);await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloadDir});
+ await evaluate("document.getElementById('exportResultJson').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('私人导出范围')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('status').textContent.includes('私人导出范围')"));
+ await evaluate("document.getElementById('privateExportConfirmed').checked=true;document.getElementById('exportResultJson').click()");
+ let exported;
+ for(let i=0;i<100;i++){try{exported=JSON.parse(await readFile(join(downloadDir,'private-job-report.json'),'utf8'));break}catch{}await pause(100)}
+ assert.equal(exported.jobs[0].selection.bucket,'reserve');assert.equal(exported.totalScore,null);
+ await evaluate("document.getElementById('exportResultHtml').click()");
+ let exportedHtml;
+ for(let i=0;i<100;i++){try{exportedHtml=await readFile(join(downloadDir,'private-job-report.html'),'utf8');break}catch{}await pause(100)}
+ assert.ok(exportedHtml.includes('该强调的真实经历'));assert.ok(exportedHtml.includes('Example reports'));
+ await evaluate("document.getElementById('resultsSection').scrollIntoView()");
+ const resultShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'result-workspace.png'),Buffer.from(resultShot.data,'base64'));
+ await evaluate("document.getElementById('generateAbility').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('exportResultJson').disabled"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('exportResultJson').disabled"));
+ await call('Page.navigate',{url:pathToFileURL(join(downloadDir,'private-job-report.html')).href});await pause(500);
+ assert.equal(await evaluate("document.querySelectorAll('article').length"),1);
+ assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
+ const exportShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'result-export.png'),Buffer.from(exportShot.data,'base64'));
+ console.log('PASS real Chrome: resume/market/review, company unknown, explicit result selection/reload, private export guard, actual JSON/HTML downloads, offline report rendering and stale-result blocking.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

@@ -102,6 +102,22 @@ class WorkspaceTests(unittest.TestCase):
         self.request('/api/screen',screen);d=json.loads(self.request('/api/state?id='+ident)[1])
         self.assertTrue(d['researchReport']['marketEvidenceChanged']);rp['reportVersion']=d['researchVersion']
         self.assertEqual(self.request('/api/research-review',rp)[0],400)
+    def test_result_routes_explicit_choice_export_and_stale_guard(self):
+        from test_prescreen_jobs import job
+        ident=json.loads(self.upload()[1])['id'];j=job(body='负责示例任务与报表整理工作')
+        screen={'id':ident,'policyConfirmed':True,'checkpoint':{'jobs':[j],'companies':[]},'policy':{'weekend':'double'}}
+        self.request('/api/screen',screen)
+        status,b=self.request('/api/result-generate',{'id':ident});self.assertEqual(status,200);d=json.loads(b)
+        self.assertEqual(d['resultSummary']['counts']['preferred'],0)
+        payload={'id':ident,'reportVersion':d['resultVersion'],'jobId':j['id'],'bucket':'excluded','reason':'本轮暂不探索此方向'}
+        self.assertEqual(self.request('/api/result-choose',payload)[0],400)
+        payload['reviewerConfirmed']=True;status,b=self.request('/api/result-choose',payload);self.assertEqual(status,200);d=json.loads(b)
+        self.assertEqual(self.request('/api/result-choose',payload)[0],400)
+        export={'id':ident,'reportVersion':d['resultVersion'],'format':'json'}
+        self.assertEqual(self.request('/api/result-export',export)[0],400)
+        export['privateExportConfirmed']=True;status,b=self.request('/api/result-export',export);self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['status'],'export-prepared-not-save-confirmed')
+        self.request('/api/screen',screen);self.assertEqual(self.request('/api/result-export',export)[0],400)
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')

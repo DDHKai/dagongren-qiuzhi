@@ -43,3 +43,5 @@ sh ./start-macos.command --workspace
 `python scripts/test_workspace_server.py`检查导入/版本/事实确认/重载、DOCX映射、未授权API、Host/Origin拒绝、路径隔离。已用无头Chrome真实DOM测试TXT、DOCX链路，不代表完整人工易用性或macOS实机通过。
 
 可选浏览器测试（Node 18+，已装Chrome，不下载浏览器）：设置DAGONGREN_TEST_PYTHON为解释器、DAGONGREN_TEST_CHROME为Chrome可执行路径后运行`node scripts/test_workspace_browser.mjs`。只用合成数据，独立配置和产物位于data/test-tmp。无头自动化不操作日常浏览器、不占鼠标键盘。
+
+第9节已接入[结果汇总与私人导出](result-report.md)。报告包含经历引用，不能按合成实验日志的方式公开回传。
