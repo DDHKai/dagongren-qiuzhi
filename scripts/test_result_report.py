@@ -82,5 +82,16 @@ class ResultTests(unittest.TestCase):
     def test_missing_job_title_keeps_unknown_instead_of_crashing(self):
         data=copy.deepcopy(self.screen);data['checkpoint']['jobs'][0]['source']['title']='未定位标题';self.w.screen(data)
         r=generate(self.folder);self.assertEqual(r['jobs'][0]['jobTitle'],'岗位标题待核实');self.assertEqual(r['jobs'][0]['group'],'值得核实')
+    def test_action_tasks_bind_current_report_and_export_observation_labels(self):
+        from test_action_ledger import observation
+        self.reviewed();d=self.w.generate_result({'id':self.ident})
+        d=self.w.choose_result({'id':self.ident,'reportVersion':d['resultVersion'],'jobId':self.jid,'bucket':'preferred','reason':'合成任务相交','reviewerConfirmed':True})
+        grant={'id':self.ident,'reportVersion':d['resultVersion'],'items':[{'jobId':self.jid,'action':'favorite-manual'}],'authorizationConfirmed':True}
+        d=self.w.authorize_actions(grant);task=d['actionTasks'][0];self.assertEqual(task['state'],'authorized')
+        obs=observation(True);obs['company']=copy.deepcopy(self.screen['checkpoint']['companies'][0]);obs['company']['source']['capturedAt']=obs['job']['source']['capturedAt']
+        d=self.w.begin_action({'id':self.ident,'taskId':task['id'],'reportVersion':d['resultVersion'],'observation':obs,'observationReviewed':True})
+        self.assertEqual(d['actionTasks'][0]['state'],'observed-favorite')
+        export=self.w.export_result({'id':self.ident,'reportVersion':d['resultVersion'],'format':'json','privateExportConfirmed':True})
+        task=json.loads(export['content'])['actionObservations'][0];self.assertFalse(task['systemExecuted']);self.assertEqual(task['messageSent'],'not-verified')
 
 if __name__=='__main__':unittest.main()

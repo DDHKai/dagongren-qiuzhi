@@ -113,6 +113,28 @@ try{
  await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.querySelector('#resultRows select')?.value==='reserve'"))break;await pause(100)}
  assert.equal(await evaluate("document.querySelector('#resultRows select').value"),'reserve');
+ await evaluate("document.querySelector('#actionChoices input[value=\"favorite-manual\"]').checked=true;document.getElementById('authorizeActions').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('动作范围')"))break;await pause(100)}
+ assert.equal(await evaluate("current.actionTasks.length"),0);
+ await evaluate("document.getElementById('actionAuthorizationConfirmed').checked=true;document.getElementById('authorizeActions').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.actionTasks.length===1"))break;await pause(100)}
+ assert.equal(await evaluate("current.actionTasks[0].state"),'authorized');assert.equal(await evaluate("current.actionTasks[0].systemExecuted"),false);
+ const observationData=JSON.parse(await readFile(market,'utf8'));
+ function observeFixture(collected){const j=structuredClone(observationData.jobs[0]),company=structuredClone(observationData.companies[0]);j.source.capturedAt=company.source.capturedAt=new Date().toISOString();j.source.text=j.source.text.replace('感兴趣',(collected?'已收藏':'收藏')+'\n感兴趣');return {schemaVersion:1,kind:'read-only-job-observation',job:j,company,controls:{favorite:collected?'collected':'not-collected',labels:[collected?'已收藏':'收藏'],basis:'exact-label-in-job-header-only'}}}
+ const observationFile=join(dir,'synthetic-observation.json');await writeFile(observationFile,JSON.stringify(observeFixture(false)));
+ async function uploadObservation(){const dom=await call('DOM.getDocument'),node=await call('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'#actionObservation'});await call('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[observationFile]})}
+ await uploadObservation();await evaluate("document.getElementById('actionObservationReviewed').checked=true;[...document.querySelectorAll('#actionTasks button')].find(b=>b.textContent==='导入刷新并开始人工接管').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.actionTasks[0].state==='awaiting-user-action'"))break;await pause(100)}
+ assert.equal(await evaluate("current.actionTasks[0].state"),'awaiting-user-action');
+ await pause(30);await writeFile(observationFile,JSON.stringify(observeFixture(true)));await uploadObservation();
+ await evaluate("document.getElementById('actionObservationReviewed').checked=true;[...document.querySelectorAll('#actionTasks button')].find(b=>b.textContent==='导入操作后新观察').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.actionTasks[0].state==='observed-favorite'"))break;await pause(100)}
+ assert.equal(await evaluate("current.actionTasks[0].state"),'observed-favorite');assert.equal(await evaluate("current.actionTasks[0].messageSent"),'not-verified');
+ await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('actionTasks').textContent.includes('已观察到平台收藏状态')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('actionTasks').textContent.includes('非本系统点击')"));
+ await evaluate("document.querySelector('#actionTasks section').scrollIntoView()");
+ const actionShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'action-ledger.png'),Buffer.from(actionShot.data,'base64'));
  const downloadDir=join(dir,'downloads');await mkdir(downloadDir);await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloadDir});
  await evaluate("document.getElementById('exportResultJson').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('私人导出范围')"))break;await pause(100)}
@@ -121,6 +143,7 @@ try{
  let exported;
  for(let i=0;i<100;i++){try{exported=JSON.parse(await readFile(join(downloadDir,'private-job-report.json'),'utf8'));break}catch{}await pause(100)}
  assert.equal(exported.jobs[0].selection.bucket,'reserve');assert.equal(exported.totalScore,null);
+ assert.equal(exported.actionObservations[0].systemExecuted,false);assert.equal(exported.actionObservations[0].messageSent,'not-verified');
  await evaluate("document.getElementById('exportResultHtml').click()");
  let exportedHtml;
  for(let i=0;i<100;i++){try{exportedHtml=await readFile(join(downloadDir,'private-job-report.html'),'utf8');break}catch{}await pause(100)}
@@ -134,6 +157,6 @@ try{
  assert.equal(await evaluate("document.querySelectorAll('article').length"),1);
  assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
  const exportShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'result-export.png'),Buffer.from(exportShot.data,'base64'));
- console.log('PASS real Chrome: resume/market/review, company unknown, explicit result selection/reload, private export guard, actual JSON/HTML downloads, offline report rendering and stale-result blocking.');
+ console.log('PASS real Chrome: resume/market/review, result selection, scoped manual authorization/observations/reload, no system-execution claim, private JSON/HTML downloads and stale-result blocking.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

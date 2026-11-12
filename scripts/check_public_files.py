@@ -24,6 +24,7 @@ PUBLIC += ['scripts/prescreen_jobs.py','scripts/test_prescreen_jobs.py','example
 PUBLIC += ['scripts/ability_review.py','scripts/test_ability_review.py','docs/ability-review.md']
 PUBLIC += ['scripts/company_research.py','scripts/test_company_research.py','docs/company-research.md','config/financial-sources.json']
 PUBLIC += ['scripts/result_report.py','scripts/test_result_report.py','docs/result-report.md']
+PUBLIC += ['scripts/action_ledger.py','scripts/test_action_ledger.py','scripts/observe_job.mjs','docs/actions.md']
 
 def scan(root=ROOT):
     findings=[]

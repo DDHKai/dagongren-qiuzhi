@@ -149,6 +149,8 @@ def html_report(report):
         salary=list(dict.fromkeys(ref['quote'] for ref in r['dimensions'].get('salary',{}).get('evidence',[])))
         parts.append('<p><strong>薪资披露：'+e('；'.join(salary[:2]) if salary else '本轮未配置判断或未定位原文')+'</strong>（不是针对本人的报价）</p>')
         if r['companyResearch']['riskAssessment']=='major-risk':parts.append('<p class="warn">人工重大风险提示：'+e(r['companyResearch'].get('finding',{}).get('reason','请核对原财报依据'))+'</p>')
+        for task in report.get('actionObservations',[]):
+            if task['jobId']==ident:parts.append('<p>动作观察：'+e({'observed-favorite':'观察到平台收藏状态，非系统点击','authorized':'仅授权，未操作','awaiting-user-action':'等待本人操作或结果证据','outcome-unknown':'结果尚未核实','cancelled':'授权撤销'}.get(task['state'],task['state']))+'；消息发送未核实。最后观察时间：'+e(datetime.fromtimestamp(task['observedAt'],timezone.utc).isoformat() if task.get('observedAt') else '无')+'，不是当前状态保证。</p>')
         u=urlsplit(r['sourceUrl'])
         if u.scheme=='https' and u.hostname=='www.zhipin.com' and re.fullmatch(r'/job_detail/[^/]+\.html',u.path):parts.append('<a rel="noreferrer" href="'+e(r['sourceUrl'])+'">原岗位（打开后仍须刷新核实）</a>')
         for key,label in [('emphasize','该强调的真实经历'),('verify','最需要核实的问题'),('possibleMismatch','双方可能不匹配之处')]:

@@ -17,9 +17,11 @@ from prescreen_jobs import run as prescreen
 from ability_review import generate as ability_generate,review as ability_review,feedback as ability_feedback,load_facts,hash_json
 from company_research import capture as finance_capture,review as finance_review,sha as finance_sha,metadata as finance_metadata
 from result_report import generate as result_generate,context as result_context,choose as result_choose,reorder as result_reorder,summary as result_summary,html_report
+from action_ledger import Ledger
 
 class Workspace:
-    def __init__(self,path):self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True)
+    def __init__(self,path):
+        self.root=Path(path);self.root.mkdir(parents=True,exist_ok=True);self.ledger=Ledger(self.root/'private-actions.sqlite3')
     def folder(self,ident):
         if not isinstance(ident,str) or not re.fullmatch('[a-f0-9]{32}',ident):raise ValueError('invalid_id')
         p=self.root/ident
@@ -72,7 +74,27 @@ class Workspace:
             try:r['stale']=r['contextHash']!=result_context(p)['hash']
             except Exception:r['stale']=True
             result.update(resultReport=r,resultVersion=v,resultSummary=result_summary(r))
+        result['actionTasks']=self.ledger.list(ident)
         return result
+    def authorize_actions(self,payload):
+        report=self.checked_result(payload)
+        self.ledger.authorize(payload['id'],report,payload['reportVersion'],payload['items'],payload.get('authorizationConfirmed'))
+        return self.state(payload['id'])
+    def begin_action(self,payload):
+        if payload.get('observationReviewed') is not True:raise ValueError('Explicit refresh review required')
+        report=self.checked_result(payload);p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
+        checkpoint=json.loads((p/meta['marketReports'][-1]/'checkpoint.json').read_text(encoding='utf-8'))
+        try:self.ledger.begin(payload['id'],payload['taskId'],report,payload['reportVersion'],checkpoint,payload['observation'])
+        except ValueError:
+            self.ledger.refused(payload['id'],payload['taskId'],payload['observation']);raise
+        return self.state(payload['id'])
+    def observe_action(self,payload):
+        self.folder(payload['id'])
+        self.ledger.finish(payload['id'],payload['taskId'],payload['observation'],payload.get('observationReviewed'))
+        return self.state(payload['id'])
+    def cancel_action(self,payload):
+        if payload.get('cancelConfirmed') is not True:raise ValueError('Explicit revocation required')
+        self.folder(payload['id']);self.ledger.cancel(payload['id'],payload['taskId']);return self.state(payload['id'])
     def save_result(self,ident,report):
         p=self.folder(ident);meta=json.loads((p/'case.json').read_text(encoding='utf-8'));v='result-'+secrets.token_hex(16)
         (p/v).mkdir();save(p/v/'report.json',report);meta.setdefault('resultReports',[]).append(v);save(p/'case.json',meta)
@@ -93,6 +115,7 @@ class Workspace:
     def export_result(self,payload):
         if payload.get('privateExportConfirmed') is not True:raise ValueError('Private export requires explicit acknowledgement')
         r=self.checked_result(payload);r['summary']=result_summary(r)
+        r['actionObservations']=[{k:t.get(k) for k in ('jobId','action','state','platformState','observedAt','systemExecuted','messageSent','attachmentSent','outcomeMeaning')} for t in self.ledger.list(payload['id']) if t['jobId'] in r['userOrder']]
         kind=payload['format']
         if kind not in ('json','html'):raise ValueError('Unsupported export')
         content=json.dumps(r,ensure_ascii=False,indent=2) if kind=='json' else html_report(r)
@@ -231,8 +254,18 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path=='/api/result-choose':data=self.server.workspace.choose_result(payload)
                 elif self.path=='/api/result-reorder':data=self.server.workspace.reorder_result(payload)
                 elif self.path=='/api/result-export':data=self.server.workspace.export_result(payload)
+                elif self.path=='/api/action-authorize':data=self.server.workspace.authorize_actions(payload)
+                elif self.path=='/api/action-begin':data=self.server.workspace.begin_action(payload)
+                elif self.path=='/api/action-observe':data=self.server.workspace.observe_action(payload)
+                elif self.path=='/api/action-cancel':data=self.server.workspace.cancel_action(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
+        except ValueError as exc:
+            if self.path.startswith('/api/action-'):
+                reason=str(exc)
+                code='duplicate-or-uncertain' if 'Existing action' in reason else 'job-changed' if 'Conditions changed' in reason or 'Job duties changed' in reason else 'authorization-stale' if 'Authorization expired' in reason or 'Stale result' in reason or 'Evidence changed' in reason else 'observation-invalid' if any(t in reason for t in ('Observation','observation','observed','Scoped control','Control label','Ambiguous')) else 'scope-or-confirmation'
+                self.send(400,{'error':'action_step_rejected','reasonCode':code})
+            else:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})
 
 def start(path,port=8875):

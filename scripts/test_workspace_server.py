@@ -118,6 +118,22 @@ class WorkspaceTests(unittest.TestCase):
         export['privateExportConfirmed']=True;status,b=self.request('/api/result-export',export);self.assertEqual(status,200)
         self.assertEqual(json.loads(b)['status'],'export-prepared-not-save-confirmed')
         self.request('/api/screen',screen);self.assertEqual(self.request('/api/result-export',export)[0],400)
+    def test_action_authorization_routes_never_execute_and_can_revoke(self):
+        from test_prescreen_jobs import job
+        d=json.loads(self.upload()[1]);ident=d['id'];fid=d['facts'][0]['id'];self.request('/api/confirm',{'id':ident,'factIds':[fid]})
+        j=job(body='负责示例任务一与报表整理工作');cid=j['companyKey']
+        self.request('/api/screen',{'id':ident,'policyConfirmed':True,'policy':{'salaryMinK':18,'salaryBasis':'published-lower-bound'},'checkpoint':{'jobs':[j],'companies':[{'id':cid,'source':{'url':'https://www.zhipin.com'+cid,'title':'合成公司','text':'公司简介'}}]}})
+        d=json.loads(self.request('/api/ability-generate',{'id':ident,'jobId':j['id']})[1]);r=d['abilityReport']
+        self.request('/api/ability-review',{'id':ident,'reportVersion':d['abilityVersion'],'contextHash':r['contextHash'],'reviewerConfirmed':True,'items':[{'requirementId':r['requirements'][0]['id'],'decision':'supported','factIds':[fid],'rationale':'合成用例任务原文对照'}]})
+        d=json.loads(self.request('/api/result-generate',{'id':ident})[1])
+        d=json.loads(self.request('/api/result-choose',{'id':ident,'reportVersion':d['resultVersion'],'jobId':j['id'],'bucket':'preferred','reason':'合成任务交集','reviewerConfirmed':True})[1])
+        grant={'id':ident,'reportVersion':d['resultVersion'],'items':[{'jobId':j['id'],'action':'favorite-manual'}]}
+        self.assertEqual(self.request('/api/action-authorize',grant)[0],400)
+        grant['authorizationConfirmed']=True;status,b=self.request('/api/action-authorize',grant);self.assertEqual(status,200)
+        task=json.loads(b)['actionTasks'][0];self.assertFalse(task['systemExecuted']);self.assertEqual(task['state'],'authorized')
+        self.assertEqual(self.request('/api/action-authorize',grant)[0],400)
+        status,b=self.request('/api/action-cancel',{'id':ident,'taskId':task['id'],'cancelConfirmed':True});self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['actionTasks'][0]['state'],'cancelled')
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')

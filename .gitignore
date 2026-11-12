@@ -46,6 +46,9 @@
 !/scripts/test_company_research.py
 !/scripts/result_report.py
 !/scripts/test_result_report.py
+!/scripts/action_ledger.py
+!/scripts/test_action_ledger.py
+!/scripts/observe_job.mjs
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -71,6 +74,7 @@
 !/docs/ability-review.md
 !/docs/company-research.md
 !/docs/result-report.md
+!/docs/actions.md
 !/config/
 /config/*
 !/config/financial-sources.json

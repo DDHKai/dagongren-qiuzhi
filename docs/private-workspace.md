@@ -45,3 +45,5 @@ sh ./start-macos.command --workspace
 可选浏览器测试（Node 18+，已装Chrome，不下载浏览器）：设置DAGONGREN_TEST_PYTHON为解释器、DAGONGREN_TEST_CHROME为Chrome可执行路径后运行`node scripts/test_workspace_browser.mjs`。只用合成数据，独立配置和产物位于data/test-tmp。无头自动化不操作日常浏览器、不占鼠标键盘。
 
 第9节已接入[结果汇总与私人导出](result-report.md)。报告包含经历引用，不能按合成实验日志的方式公开回传。
+
+第10节已接入[限定授权与人工接管记录](actions.md)，含私有SQLite台账。它不自动点击真实平台按钮，也不把聊天入口当作发送证据。
