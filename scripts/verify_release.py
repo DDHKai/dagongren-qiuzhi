@@ -18,11 +18,11 @@ def main():
                 if '://' not in target and not target.startswith('#'):
                     if not ((root/name).parent/target.split('#')[0]).exists():
                         raise SystemExit('Broken local link: '+name)
-    for name in ['test_project_store.py','test_review_store.py','test_candidate_facts.py','test_desktop_launcher.py','test_audit_test_log.py','test_release_layout.py','test_resume_workspace.py','test_resume_document.py','test_workspace_server.py','test_prescreen_jobs.py','test_ability_review.py','test_company_research.py','test_result_report.py','test_action_ledger.py']:
+    for name in ['test_project_store.py','test_review_store.py','test_candidate_facts.py','test_desktop_launcher.py','test_audit_test_log.py','test_release_layout.py','test_resume_workspace.py','test_resume_document.py','test_workspace_server.py','test_prescreen_jobs.py','test_ability_review.py','test_company_research.py','test_result_report.py','test_action_ledger.py','test_favorite_workspace.py']:
         subprocess.run([sys.executable,str(root/'scripts'/name)],cwd=root,check=True)
     node=shutil.which('node')
     if node:
-        for name in ['test_experiment.mjs','test_job_collector.mjs','test_job_collector_dom.mjs','test_collector_protocol.mjs']:
+        for name in ['test_experiment.mjs','test_job_collector.mjs','test_job_collector_dom.mjs','test_favorite_core.mjs','test_collector_protocol.mjs']:
             subprocess.run([node,str(root/'scripts'/name)],cwd=root,check=True)
     else:print('SKIP JavaScript tests: Node unavailable; not a full validation')
     print('PASS local checks. Real-device testing and manual privacy review remain required.')

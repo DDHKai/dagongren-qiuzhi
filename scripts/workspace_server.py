@@ -1,4 +1,4 @@
-"""Private localhost intake UI. No model, telemetry or external actions."""
+"""Private localhost workspace. Favorite-only after explicit scope/account confirmation."""
 import argparse
 import base64
 import hashlib
@@ -7,6 +7,9 @@ from pathlib import Path
 import re
 import secrets
 import threading
+import shutil
+import subprocess
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit,parse_qs
@@ -28,6 +31,34 @@ class Workspace:
         if not p.is_dir():raise ValueError('unknown_id')
         return p
     def listing(self):return sorted(p.name for p in self.root.iterdir() if p.is_dir() and re.fullmatch('[a-f0-9]{32}',p.name))
+    def favorite_worker(self,spec):
+        node=shutil.which('node')
+        if not node:return {'status':'stopped','code':'NODE_UNAVAILABLE','clickMayHaveOccurred':False}
+        p=self.root/('favorite-worker-'+secrets.token_hex(16));p.mkdir();save(p/'request.json',spec)
+        try:
+            subprocess.run([node,str(ROOT/'scripts/favorite_worker.mjs'),'--request',str((p/'request.json').resolve()),'--output',str((p/'output').resolve())],cwd=ROOT,capture_output=True,timeout=100)
+            return json.loads((p/'output/result.json').read_text(encoding='utf-8'))
+        except Exception:return {'status':'stopped','code':'WORKER_UNAVAILABLE_OR_TIMEOUT','clickMayHaveOccurred':spec['mode']=='execute'}
+    def favorite_salt(self):
+        p=self.root/'private-favorite-salt'
+        if not p.exists():p.write_text(secrets.token_hex(32),encoding='utf-8')
+        return p.read_text(encoding='utf-8')
+    def favorite_probe(self,payload):
+        endpoint=payload.get('endpoint','http://127.0.0.1:9333');tab=payload.get('tabId') or None
+        result=self.favorite_worker({'mode':'probe','salt':self.favorite_salt(),'endpoint':endpoint,'tabId':tab})
+        if result.get('status')!='account-observed':raise ValueError('Account marker unavailable; login or select one test tab')
+        probe={'id':secrets.token_hex(16),'account':result['account'],'endpoint':endpoint,'tabId':result['tabId'],'createdAt':time.time()}
+        save(self.root/'private-favorite-probe.json',probe);return {'favoriteProbe':{k:probe[k] for k in ('id','account','createdAt')}}
+    def bind_favorite(self,payload):
+        if payload.get('bindingConfirmed') is not True:raise ValueError('Explicit account binding required')
+        probe=json.loads((self.root/'private-favorite-probe.json').read_text(encoding='utf-8'));now=time.time();alias=payload['alias']
+        if payload['probeId']!=probe['id'] or not 0<=now-probe['createdAt']<=300 or not isinstance(alias,str) or not alias.strip() or len(alias)>50:raise ValueError('Stale probe or invalid local alias')
+        binding={**probe,'id':secrets.token_hex(16),'alias':alias.strip(),'expiresAt':now+3600}
+        save(self.root/'private-favorite-binding.json',binding);return {'favoriteBinding':{k:binding[k] for k in ('id','alias','account','expiresAt')}}
+    def favorite_binding(self):
+        binding=json.loads((self.root/'private-favorite-binding.json').read_text(encoding='utf-8'))
+        if binding['expiresAt']<time.time():raise ValueError('Account binding expired')
+        return binding
     def upload(self,payload):
         validate_conditions(payload['conditions'])
         kind=payload['kind']
@@ -75,13 +106,40 @@ class Workspace:
             except Exception:r['stale']=True
             result.update(resultReport=r,resultVersion=v,resultSummary=result_summary(r))
         result['actionTasks']=self.ledger.list(ident)
+        result['capabilities']={'favorite':'explicit-account-bound-authorization','autoContact':'upgrade-disabled','sendResume':'upgrade-disabled','autoReply':'upgrade-disabled'}
+        try:
+            binding=self.favorite_binding();result['favoriteBinding']={k:binding[k] for k in ('id','alias','account','expiresAt')}
+        except (OSError,ValueError):result['favoriteBinding']=None
         return result
     def authorize_actions(self,payload):
         report=self.checked_result(payload)
-        self.ledger.authorize(payload['id'],report,payload['reportVersion'],payload['items'],payload.get('authorizationConfirmed'))
+        binding=self.favorite_binding() if any(i.get('action')=='favorite' for i in payload['items']) else None
+        self.ledger.authorize(payload['id'],report,payload['reportVersion'],payload['items'],payload.get('authorizationConfirmed'),binding)
         return self.state(payload['id'])
+    def execute_favorite(self,payload):
+        report=self.checked_result(payload);task=self.ledger.task(payload['id'],payload['taskId']);binding=self.favorite_binding()
+        if task.get('bindingId')!=binding['id'] or task['action']!='favorite' or task['state']!='authorized' or task['reportVersion']!=payload['reportVersion']:raise ValueError('Favorite authorization or binding changed')
+        spec={'salt':self.favorite_salt(),'endpoint':binding['endpoint'],'tabId':binding['tabId'],'expectedAccount':binding['account'],'jobId':task['jobId'],'companyId':task['companyId'],'jobTitle':task['jobTitle']}
+        prepared=self.favorite_worker({**spec,'mode':'prepare'})
+        if prepared.get('status')!='prepared-not-clicked':raise ValueError('Favorite refresh failed; no click requested')
+        self.favorite_binding() # Recheck consent expiry after the read-only refresh.
+        if any(prepared['account'][k]!=binding['account'][k] for k in ('fingerprint','browserFingerprint')):raise ValueError('Account or browser changed')
+        observation={**prepared['observation'],'account':prepared['account']};p=self.folder(payload['id']);checkpoint=json.loads((p/report['context']['marketVersion']/'checkpoint.json').read_text(encoding='utf-8'))
+        self.ledger.begin(payload['id'],task['id'],report,payload['reportVersion'],checkpoint,observation)
+        if self.ledger.task(payload['id'],task['id'])['state']=='observed-favorite':return self.state(payload['id'])
+        claimed=self.ledger.claim(payload['id'],task['id'])
+        outcome=self.favorite_worker({**spec,'mode':'execute','expectedCriticalHash':prepared['criticalHash'],'taskId':task['id'],'attemptId':claimed['attemptId'],'validUntil':min(task['expiresAt'],binding['expiresAt'])})
+        try:self.ledger.complete(payload['id'],task['id'],outcome)
+        except Exception:self.ledger.complete(payload['id'],task['id'],{'status':'stopped','code':'OUTCOME_PROOF_INVALID','clickMayHaveOccurred':True})
+        return self.state(payload['id'])
+    def reconcile_favorite(self,payload):
+        self.folder(payload['id']);task=self.ledger.task(payload['id'],payload['taskId']);binding=self.favorite_binding()
+        if task['action']!='favorite' or task['state'] not in ('outcome-unknown','executing'):raise ValueError('No uncertain favorite to reconcile')
+        result=self.favorite_worker({'mode':'verify','salt':self.favorite_salt(),'endpoint':binding['endpoint'],'tabId':binding['tabId'],'expectedAccount':binding['account'],'jobId':task['jobId'],'companyId':task['companyId'],'jobTitle':task['jobTitle']})
+        self.ledger.reconcile_reload(payload['id'],task['id'],result);return self.state(payload['id'])
     def begin_action(self,payload):
         if payload.get('observationReviewed') is not True:raise ValueError('Explicit refresh review required')
+        if self.ledger.task(payload['id'],payload['taskId'])['action']!='favorite-manual':raise ValueError('Use favorite execution; contact is upgrade-only')
         report=self.checked_result(payload);p=self.folder(payload['id']);meta=json.loads((p/'case.json').read_text(encoding='utf-8'))
         checkpoint=json.loads((p/meta['marketReports'][-1]/'checkpoint.json').read_text(encoding='utf-8'))
         try:self.ledger.begin(payload['id'],payload['taskId'],report,payload['reportVersion'],checkpoint,payload['observation'])
@@ -115,7 +173,7 @@ class Workspace:
     def export_result(self,payload):
         if payload.get('privateExportConfirmed') is not True:raise ValueError('Private export requires explicit acknowledgement')
         r=self.checked_result(payload);r['summary']=result_summary(r)
-        r['actionObservations']=[{k:t.get(k) for k in ('jobId','action','state','platformState','observedAt','systemExecuted','messageSent','attachmentSent','outcomeMeaning')} for t in self.ledger.list(payload['id']) if t['jobId'] in r['userOrder']]
+        r['actionObservations']=[{k:t.get(k) for k in ('jobId','action','state','platformState','observedAt','systemExecuted','messageSent','attachmentSent','outcomeMeaning','beforeHash','afterHash','attemptId','reloadConfirmed','reconciliationReloadConfirmed','reconciliationProofHash')} for t in self.ledger.list(payload['id']) if t['jobId'] in r['userOrder']]
         kind=payload['format']
         if kind not in ('json','html'):raise ValueError('Unsupported export')
         content=json.dumps(r,ensure_ascii=False,indent=2) if kind=='json' else html_report(r)
@@ -258,12 +316,16 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path=='/api/action-begin':data=self.server.workspace.begin_action(payload)
                 elif self.path=='/api/action-observe':data=self.server.workspace.observe_action(payload)
                 elif self.path=='/api/action-cancel':data=self.server.workspace.cancel_action(payload)
+                elif self.path=='/api/favorite-probe':data=self.server.workspace.favorite_probe(payload)
+                elif self.path=='/api/favorite-bind':data=self.server.workspace.bind_favorite(payload)
+                elif self.path=='/api/favorite-execute':data=self.server.workspace.execute_favorite(payload)
+                elif self.path=='/api/favorite-reconcile':data=self.server.workspace.reconcile_favorite(payload)
                 else:self.send(404,{'error':'not_found'});return
             self.send(200,data)
         except ValueError as exc:
-            if self.path.startswith('/api/action-'):
+            if self.path.startswith(('/api/action-','/api/favorite-')):
                 reason=str(exc)
-                code='duplicate-or-uncertain' if 'Existing action' in reason else 'job-changed' if 'Conditions changed' in reason or 'Job duties changed' in reason else 'authorization-stale' if 'Authorization expired' in reason or 'Stale result' in reason or 'Evidence changed' in reason else 'observation-invalid' if any(t in reason for t in ('Observation','observation','observed','Scoped control','Control label','Ambiguous')) else 'scope-or-confirmation'
+                code='account-unavailable' if any(t in reason for t in ('Account','account binding','binding changed','Favorite refresh failed')) else 'duplicate-or-uncertain' if 'Existing action' in reason else 'job-changed' if 'Conditions changed' in reason or 'Job duties changed' in reason else 'authorization-stale' if 'Authorization expired' in reason or 'Stale result' in reason or 'Evidence changed' in reason else 'observation-invalid' if any(t in reason for t in ('Observation','observation','observed','Scoped control','Control label','Ambiguous','Favorite control')) else 'scope-or-confirmation'
                 self.send(400,{'error':'action_step_rejected','reasonCode':code})
             else:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})
         except Exception:self.send(400,{'error':'request_failed_check_format_dependency_evidence_or_confirmation'})

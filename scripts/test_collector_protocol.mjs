@@ -7,17 +7,18 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));await mkdir(join(root,'data/test-tmp'),{recursive:true});const dir=await mkdtemp(join(root,'data/test-tmp/cdp-fixture-'));
-let mode='happy',current='https://www.zhipin.com/web/geek/jobs',navigations=0;let commands=[];const sockets=new Set();
+let mode='happy',current='https://www.zhipin.com/web/geek/jobs',navigations=0;let commands=[],favoriteCollected=false,favoriteClicks=0,accountName='合成账号';const sockets=new Set();
 const jobs=[1,2,3].map(i=>({text:'样例岗位'+i,href:'https://www.zhipin.com/job_detail/fake'+i+'.html',cls:'job-name'}));
 function snapshot(){
  if(mode==='security')return {url:current,text:'请完成验证',links:[],companyLinks:[]};
  if(mode==='login')return {url:current,text:'登录/注册',links:[],companyLinks:[]};
- if(current.includes('/job_detail/')){let i=Number(current.match(/fake(\d)/)[1]);return {url:current,title:'样例岗位',text:'职位描述 样例岗位'+i+' 公司基本信息',links:[],companyLinks:[{href:'https://www.zhipin.com/gongsi/'+(i===3?'b':'a')+'.html',text:'样例主体'}]}}
+ if(current.includes('/web/geek/account'))return {url:current,title:'账号设置',text:'账号与安全中心',links:[],companyLinks:[]};
+ if(current.includes('/job_detail/')){let i=Number(current.match(/fake(\d)/)[1]);return {url:current,title:'样例岗位',text:'样例岗位'+i+' 20-30K\n杭州 大专\n'+(favoriteCollected?'取消感兴趣':'感兴趣')+'\n立即沟通\n职位描述\n负责样例岗位'+i+'工作\n竞争力分析\n公司基本信息',links:[],companyLinks:[{href:'https://www.zhipin.com/gongsi/'+(i===3?'b':'a')+'.html',text:'样例主体'}]}}
  if(current.includes('/gongsi/'))return {url:current,title:'样例公司',text:'工商信息',links:[],companyLinks:[]};
  return {url:current,title:'列表',text:'示例列表',links:jobs,companyLinks:[]};
 }
 function frame(text){const b=Buffer.from(text);if(b.length<126)return Buffer.concat([Buffer.from([129,b.length]),b]);const h=Buffer.alloc(4);h[0]=129;h[1]=126;h.writeUInt16BE(b.length,2);return Buffer.concat([h,b])}
-const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify([{id:'test-tab',type:'page',url:'https://www.zhipin.com/web/geek/jobs',webSocketDebuggerUrl:'ws://127.0.0.1:'+server.address().port+'/ws'}]))});
+const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/json/version'?{webSocketDebuggerUrl:'ws://127.0.0.1:'+server.address().port+'/devtools/browser/synthetic'}:[{id:'test-tab',type:'page',url:'https://www.zhipin.com/web/geek/jobs',webSocketDebuggerUrl:'ws://127.0.0.1:'+server.address().port+'/ws'}]))});
 server.on('upgrade',(req,socket)=>{
  sockets.add(socket);socket.on('close',()=>sockets.delete(socket));socket.on('error',()=>{});
  const key=createHash('sha1').update(req.headers['sec-websocket-key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
@@ -27,6 +28,10 @@ server.on('upgrade',(req,socket)=>{
   const message=JSON.parse(body.toString());commands.push(message);let result={};
   if(message.method==='Page.navigate'){navigations++;if(mode==='disconnect'){socket.destroy();return}current=message.params.url}
   if(message.method==='Runtime.evaluate')result={result:{value:JSON.stringify(message.params.expression.includes('exact-label-in-job-header-only')?{favorite:'not-collected',labels:['收藏'],basis:'exact-label-in-job-header-only'}:snapshot())}};
+  if(message.method==='Runtime.evaluate'&&message.params.expression.includes('function accountDocument'))result={result:{value:JSON.stringify({name:accountName,phone:'138****0000'})}};
+  if(message.method==='Runtime.evaluate'&&message.params.expression.includes('function controlDocument'))result={result:{value:JSON.stringify({favorite:favoriteCollected?'collected':'not-collected',basis:'favorite-control-v1',control:{kind:'boss-interest',label:favoriteCollected?'取消感兴趣':'感兴趣',active:favoriteCollected},labels:[favoriteCollected?'取消感兴趣':'感兴趣']})}};
+  if(message.method==='Runtime.evaluate'&&message.params.expression.includes('function clickDocument')){favoriteClicks++;favoriteCollected=true;result={result:{value:{clickRequested:true}}}};
+  if(message.method==='Runtime.evaluate'&&message.params.expression.startsWith("document.querySelector('.nav-figure > a')"))result={result:{value:accountName}};
   socket.write(frame(JSON.stringify({id:message.id,result})));
  }});
 });
@@ -43,6 +48,18 @@ try{
  assert.equal(observation.kind,'read-only-job-observation');assert.equal(observation.job.id,jobs[0].href);assert.equal(observation.company.id,'/gongsi/a.html');
  assert.ok(commands.every(c=>['Page.navigate','Runtime.evaluate'].includes(c.method)));assert.ok(commands.every(c=>!c.params.expression||!c.params.expression.includes('.click(')));
  mode='login';commands=[];assert.notEqual(await observe(join(dir,'read-only-login')),0);assert.ok(commands.every(c=>c.method!=='Page.navigate'));
+ mode='happy';commands=[];favoriteCollected=false;
+ async function favorite(modeName,spec){const request=join(dir,'favorite-'+modeName+'.json'),out=join(dir,'favorite-'+modeName);await writeFile(request,JSON.stringify({...spec,endpoint:'http://127.0.0.1:'+server.address().port}));await new Promise((resolve,reject)=>{const p=spawn(process.execPath,[join(root,'scripts/favorite_worker.mjs'),'--request',request,'--output',out],{windowsHide:true,stdio:'ignore'});const t=setTimeout(()=>{p.kill();reject(Error('favorite worker timeout'))},60000);p.on('exit',()=>{clearTimeout(t);resolve()})});return JSON.parse(await readFile(join(out,'result.json')))}
+ const salt='s'.repeat(64),probe=await favorite('probe',{mode:'probe',salt});assert.equal(probe.status,'account-observed');
+ const spec={salt,expectedAccount:probe.account,jobId:jobs[0].href,companyId:'/gongsi/a.html',jobTitle:'样例岗位1'};
+ const prepared=await favorite('prepare',{...spec,mode:'prepare'});assert.equal(prepared.status,'prepared-not-clicked');assert.equal(favoriteClicks,0);
+ const execution={...spec,mode:'execute',expectedCriticalHash:prepared.criticalHash,taskId:'synthetic-task',attemptId:'synthetic-attempt',validUntil:Date.now()/1000+1800};
+ const done=await favorite('execute',execution);assert.equal(done.status,'confirmed-favorite');assert.equal(done.reloadConfirmed,true);assert.equal(favoriteClicks,1);
+ const again=await favorite('already',execution);assert.equal(again.status,'already-favorite');assert.equal(favoriteClicks,1);
+ const verified=await favorite('verify',{...spec,mode:'verify'});assert.equal(verified.status,'verified-existing-favorite');assert.equal(verified.clicked,false);assert.equal(verified.reloadConfirmed,true);assert.equal(favoriteClicks,1);
+ accountName='另一合成账号';const mismatch=await favorite('mismatch',{...spec,mode:'prepare'});assert.equal(mismatch.status,'stopped');assert.equal(favoriteClicks,1);
+ assert.ok(commands.every(c=>['Page.navigate','Page.reload','Runtime.evaluate'].includes(c.method)));assert.ok(commands.filter(c=>c.method==='Page.navigate').every(c=>!c.params.url.includes('/chat')));
+ console.log('PASS favorite subprocess protocol: account binding, prepare without click, one favorite click, post-reload confirmation, no duplicate toggle, account switch stop. Synthetic fixture only.');
  console.log('PASS read-only job refresh protocol: scoped identity, no input/click commands, pre-navigation login stop. Synthetic fixture only.');
  console.log('PASS synthetic CDP orchestration: 3 jobs/2 companies, resume dedupe, pre-navigation login/security stop, disconnect checkpoint. Not live platform validation.');
 }finally{for(const s of sockets)s.destroy();await new Promise(r=>server.close(r))}

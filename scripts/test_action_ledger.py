@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from action_ledger import Ledger
+from action_ledger import Ledger,stamp
 from test_prescreen_jobs import job
 from prescreen_jobs import run
 
@@ -33,7 +33,7 @@ class ActionTests(unittest.TestCase):
         t=self.authorize();self.assertFalse(t['systemExecuted']);self.assertEqual(t['messageSent'],'not-verified')
         with self.assertRaises(ValueError):self.store.authorize('other-case',self.report,'v1',self.items,True)
     def test_fresh_after_observation_not_click_claim(self):
-        t=self.authorize();self.begin(t);r=self.store.finish('case',t['id'],observation(True),True)
+        t=self.authorize();self.begin(t);r=self.store.finish('case',t['id'],observation(True,delta=.1),True)
         self.assertEqual(r['state'],'observed-favorite');self.assertFalse(r['systemExecuted']);self.assertEqual(r['messageSent'],'not-verified')
         with self.assertRaises(ValueError):self.authorize()
     def test_old_wrong_company_and_platform_wall_stop(self):
@@ -49,13 +49,13 @@ class ActionTests(unittest.TestCase):
         obs=observation();obs['job']['source']['text']=obs['job']['source']['text'].replace('示例报表','销售招商')
         with self.assertRaises(ValueError):self.begin(t,obs)
     def test_unknown_outcome_blocks_repetition_but_can_reconcile(self):
-        t=self.authorize();self.begin(t);r=self.store.finish('case',t['id'],observation(),True)
+        t=self.authorize();self.begin(t);r=self.store.finish('case',t['id'],observation(delta=.1),True)
         self.assertEqual(r['state'],'outcome-unknown')
         with self.assertRaises(ValueError):self.authorize()
-        r=self.store.finish('case',t['id'],observation(True),True);self.assertEqual(r['state'],'observed-favorite')
+        r=self.store.finish('case',t['id'],observation(True,delta=.1),True);self.assertEqual(r['state'],'observed-favorite')
     def test_contact_entry_never_proves_message_sent(self):
-        t=self.authorize([{'jobId':self.jid,'action':'contact-manual'}]);self.begin(t);r=self.store.finish('case',t['id'],observation(True),True)
-        self.assertEqual(r['state'],'outcome-unknown');self.assertEqual(r['messageSent'],'not-verified')
+        with self.assertRaises(ValueError):self.authorize([{'jobId':self.jid,'action':'contact-manual'}])
+        self.assertFalse(self.store.list('case'))
     def test_prior_favorite_observation_does_not_repeat(self):
         t=self.authorize();r=self.begin(t,observation(True));self.assertEqual(r['state'],'observed-favorite');self.assertFalse(r['systemExecuted'])
     def test_cancel_and_report_binding(self):
@@ -82,5 +82,39 @@ class ActionTests(unittest.TestCase):
     def test_withdrawn_selection_cannot_begin(self):
         t=self.authorize();self.report['jobs'][0]['selection']['selected']=False
         with self.assertRaises(ValueError):self.begin(t)
+    def auto(self):
+        binding={'id':'synthetic-binding','expiresAt':stamp()+3600,'account':{'fingerprint':'a'*64,'browserFingerprint':'b'*64}}
+        task=self.store.authorize('case',self.report,'v1',[{'jobId':self.jid,'action':'favorite'}],True,binding)[0]
+        obs=observation();obs['account']=binding['account'];self.begin(task,obs)
+        return binding,self.store.claim('case',task['id'])
+    def result(self,binding,task):
+        obs=observation(True,delta=.1)
+        return {'status':'confirmed-favorite','account':binding['account'],'observation':obs,'clicked':True,'reloadConfirmed':True,'taskId':task['id'],'attemptId':task['attemptId']}
+    def test_automatic_favorite_needs_binding_and_durable_claim(self):
+        with self.assertRaises(ValueError):self.store.authorize('case',self.report,'v1',[{'jobId':self.jid,'action':'favorite'}],True)
+        binding,task=self.auto();self.assertEqual(task['state'],'executing')
+        with self.assertRaises(ValueError):self.store.claim('case',task['id'])
+        r=self.store.complete('case',task['id'],self.result(binding,task));self.assertEqual(r['state'],'confirmed-favorite');self.assertTrue(r['systemExecuted']);self.assertEqual(r['messageSent'],'not-verified')
+        with self.assertRaises(ValueError):self.store.authorize('case',self.report,'v1',[{'jobId':self.jid,'action':'favorite'}],True,binding)
+    def test_reload_and_attempt_proof_required(self):
+        binding,task=self.auto();result=self.result(binding,task);result['reloadConfirmed']=False
+        with self.assertRaises(ValueError):self.store.complete('case',task['id'],result)
+        self.assertEqual(self.store.list('case')[0]['state'],'executing')
+        result=self.result(binding,task);result['attemptId']='wrong'
+        with self.assertRaises(ValueError):self.store.complete('case',task['id'],result)
+    def test_account_switch_does_not_become_success(self):
+        binding,task=self.auto();result=self.result(binding,task);result['account']={**binding['account'],'fingerprint':'c'*64}
+        with self.assertRaises(ValueError):self.store.complete('case',task['id'],result)
+        r=self.store.complete('case',task['id'],{'status':'stopped','clickMayHaveOccurred':True,'code':'ACCOUNT_CHANGED'});self.assertEqual(r['state'],'outcome-unknown');self.assertFalse(r['systemExecuted'])
+    def test_stopped_before_click_is_distinct_from_unknown(self):
+        binding,task=self.auto();r=self.store.complete('case',task['id'],{'status':'stopped','clickMayHaveOccurred':False,'code':'SCOPE_CHANGED'});self.assertEqual(r['state'],'blocked-before-click')
+        new=self.store.authorize('case',self.report,'v1',[{'jobId':self.jid,'action':'favorite'}],True,binding)[0];self.assertEqual(new['state'],'authorized')
+    def test_readonly_reconciliation_preserves_execution_uncertainty(self):
+        binding,task=self.auto();self.store.complete('case',task['id'],{'status':'stopped','clickMayHaveOccurred':True,'code':'OLD_PARSER'})
+        observation_after=observation(True,delta=.1);observation_after['job']['source']['text']=observation_after['job']['source']['text'].replace('已收藏','取消感兴趣')
+        observation_after['controls']={'favorite':'collected','basis':'favorite-control-v1','control':{'kind':'boss-interest','label':'取消感兴趣','active':True}}
+        proof={'status':'verified-existing-favorite','clicked':False,'reloadConfirmed':True,'account':binding['account'],'observation':observation_after}
+        r=self.store.reconcile_reload('case',task['id'],proof);self.assertEqual(r['state'],'observed-favorite');self.assertTrue(r['reconciliationReloadConfirmed']);self.assertFalse(r['systemExecuted'])
+        with self.assertRaises(ValueError):self.store.claim('case',task['id'])
 
 if __name__=='__main__':unittest.main()

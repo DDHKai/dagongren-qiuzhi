@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {accountProof,assertAccount,critical,controlDocument,clickDocument,favoriteState} from './favorite_core.mjs';
+const raw={name:'合成用户',phone:'138****0000'},salt='s'.repeat(64);
+const a=accountProof(raw,'synthetic-browser',salt),b=accountProof(raw,'other-browser',salt);
+assert.equal(a.fingerprint,b.fingerprint);assert.notEqual(a.browserFingerprint,b.browserFingerprint);
+assert.throws(()=>assertAccount(b,a));assert.throws(()=>accountProof({name:'合成',phone:''},'browser',salt));
+assert.notEqual(accountProof({...raw,phone:'138****0001'},'synthetic-browser',salt).fingerprint,a.fingerprint);
+let clicks=0;const favorite={innerText:'感兴趣',getClientRects:()=>[{}],hasAttribute:()=>false,getAttribute:()=>null,classList:{contains:c=>c==='btn-interest'},click:()=>clicks++};
+const contact={...favorite,innerText:'立即沟通',classList:{contains:()=>false},click:()=>{throw Error('CONTACT_MUST_NOT_BE_CLICKED')}};
+let duplicate=false;
+const scope={querySelector:s=>s==='h1'?{innerText:'合成岗位'}:null,querySelectorAll:s=>s.includes('.btn-interest')?(duplicate?[favorite,favorite]:[favorite]):[favorite,contact]};
+const document={querySelector:s=>s==='.job-banner'?scope:null};
+let c=controlDocument(document,'合成岗位');assert.equal(c.favorite,'not-collected');assert.equal(c.control.kind,'boss-interest');
+clickDocument(document,'合成岗位',c.control);assert.equal(clicks,1);
+assert.throws(()=>clickDocument(document,'合成岗位',{kind:'boss-interest',label:'立即沟通'}));assert.equal(clicks,1);
+assert.equal(controlDocument(document,'别的岗位').favorite,'unknown');duplicate=true;assert.equal(controlDocument(document,'合成岗位').favorite,'unknown');duplicate=false;
+favorite.innerText='已感兴趣';assert.equal(favoriteState(controlDocument(document,'合成岗位').control),'collected');assert.throws(()=>clickDocument(document,'合成岗位',{kind:'boss-interest',label:'已感兴趣'}));
+favorite.innerText='取消感兴趣';favorite.classList={contains:c=>['btn-interest','active'].includes(c)};assert.equal(favoriteState(controlDocument(document,'合成岗位').control),'collected');assert.throws(()=>clickDocument(document,'合成岗位',{kind:'boss-interest',label:'取消感兴趣'}));
+favorite.innerText='感兴趣';assert.equal(controlDocument(document,'合成岗位').favorite,'unknown');assert.throws(()=>clickDocument(document,'合成岗位',{kind:'boss-interest',label:'感兴趣'}));
+function observation(label='感兴趣'){return {job:{id:'https://www.zhipin.com/job_detail/synthetic.html',companyKey:'/gongsi/synthetic.html',source:{url:'https://www.zhipin.com/job_detail/synthetic.html',text:'合成岗位 20-30K\n杭州 大专\n'+label+'\n立即沟通\n职位描述\n负责合成业务工作\n竞争力分析'}},company:{id:'/gongsi/synthetic.html',source:{text:'工作时间及福利\n双休\n招聘Boss'}}}}
+const before=observation();assert.equal(critical(before,'合成岗位'),critical(observation('已感兴趣'),'合成岗位'));
+assert.equal(critical(before,'合成岗位'),critical(observation('取消感兴趣'),'合成岗位'));
+const changed=observation();changed.job.source.text=changed.job.source.text.replace('20-30K','15-20K');assert.notEqual(critical(before,'合成岗位'),critical(changed,'合成岗位'));
+changed.job.source.text=before.job.source.text.replace('合成业务工作','不同职责要求');assert.notEqual(critical(before,'合成岗位'),critical(changed,'合成岗位'));
+assert.equal(clicks,1);console.log('PASS favorite policy and DOM fixture: account/session mismatch, critical changes, exact one favorite control, already-favorite no toggle, communication never clicked.');

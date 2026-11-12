@@ -134,6 +134,17 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(self.request('/api/action-authorize',grant)[0],400)
         status,b=self.request('/api/action-cancel',{'id':ident,'taskId':task['id'],'cancelConfirmed':True});self.assertEqual(status,200)
         self.assertEqual(json.loads(b)['actionTasks'][0]['state'],'cancelled')
+    def test_favorite_probe_and_binding_need_token_and_confirmation(self):
+        calls=[]
+        def worker(spec):
+            calls.append(spec['mode']);return {'status':'account-observed','tabId':'synthetic-tab','account':{'fingerprint':'a'*64,'browserFingerprint':'b'*64,'displayHint':'138****0000','method':'visible-masked-phone-and-nav-name-v1'}}
+        self.server.workspace.favorite_worker=worker
+        self.assertEqual(self.request('/api/favorite-probe',{},auth=False)[0],403);self.assertFalse(calls)
+        status,b=self.request('/api/favorite-probe',{});self.assertEqual(status,200);probe=json.loads(b)['favoriteProbe']
+        payload={'probeId':probe['id'],'alias':'合成账号'}
+        self.assertEqual(self.request('/api/favorite-bind',payload)[0],400)
+        payload['bindingConfirmed']=True;status,b=self.request('/api/favorite-bind',payload);self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['favoriteBinding']['alias'],'合成账号');self.assertEqual(calls,['probe'])
     def test_docx_mapping_to_confirmable_facts(self):
         b=BytesIO()
         with ZipFile(b,'w') as z:z.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>整理合成报表</w:t></w:r></w:p></w:body></w:document>')

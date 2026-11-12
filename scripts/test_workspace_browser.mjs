@@ -11,7 +11,27 @@ const dir=await mkdtemp(join(parent,'browser workspace '));
 const python=process.env.DAGONGREN_TEST_PYTHON||'python';
 const chrome=process.env.DAGONGREN_TEST_CHROME;
 if(!chrome)throw Error('Set DAGONGREN_TEST_CHROME to installed Chrome executable');
-const server=spawn(python,[join(root,'scripts/desktop_launcher.py'),'--workspace','--no-browser','--data',join(dir,'private')],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
+// Real local workspace UI; favorite subprocess is a synthetic worker double.
+const fixture=join(dir,'fixture-server.py');await writeFile(fixture,`import copy,json,sys
+from pathlib import Path
+from datetime import datetime,timezone,timedelta
+sys.path.insert(0,sys.argv[1])
+from workspace_server import start
+server=start(sys.argv[2],0)
+account={'fingerprint':'a'*64,'browserFingerprint':'b'*64,'displayHint':'138****0000','method':'visible-masked-phone-and-nav-name-v1','capturedAt':datetime.now(timezone.utc).isoformat()}
+def worker(spec):
+ if spec['mode']=='probe':return {'status':'account-observed','account':account,'tabId':'synthetic-tab'}
+ data=json.loads((Path(sys.argv[2]).parent/'synthetic-market.json').read_text(encoding='utf-8'));j=copy.deepcopy(data['jobs'][0]);c=copy.deepcopy(data['companies'][0]);collected=spec['mode']=='execute'
+ j['source']['capturedAt']=c['source']['capturedAt']=(datetime.now(timezone.utc)+timedelta(seconds=.1)).isoformat()
+ if collected:j['source']['text']=j['source']['text'].replace('感兴趣','已感兴趣')
+ label='已感兴趣' if collected else '感兴趣';observation={'schemaVersion':1,'kind':'read-only-job-observation','job':j,'company':c,'controls':{'favorite':'collected' if collected else 'not-collected','basis':'favorite-control-v1','control':{'kind':'boss-interest','label':label},'labels':[label]}}
+ if not collected:return {'status':'prepared-not-clicked','account':account,'observation':observation,'criticalHash':'synthetic-critical'}
+ return {'status':'confirmed-favorite','account':account,'observation':observation,'clicked':True,'reloadConfirmed':True,'taskId':spec['taskId'],'attemptId':spec['attemptId']}
+server.workspace.favorite_worker=worker
+print(server.origin,flush=True)
+server.serve_forever()
+`);
+const server=spawn(python,[fixture,join(root,'scripts'),join(dir,'private')],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
 const url=await new Promise((res,rej)=>{let s='';const timer=setTimeout(()=>rej(Error('server timeout')),15000);server.stdout.on('data',b=>{s+=b;const m=s.match(/http:\/\/127\.0\.0\.1:\d+/);if(m){clearTimeout(timer);res(m[0])}});server.on('exit',()=>{clearTimeout(timer);rej(Error('server exited'))})});
 const browser=spawn(chrome,['--headless=new','--remote-debugging-port=0','--user-data-dir='+join(dir,'chrome'),'--no-first-run','--no-default-browser-check','about:blank'],{windowsHide:true,stdio:'ignore'});
 let ws;const pending=new Map();let seq=0;
@@ -113,27 +133,25 @@ try{
  await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
  for(let i=0;i<100;i++){if(await evaluate("document.querySelector('#resultRows select')?.value==='reserve'"))break;await pause(100)}
  assert.equal(await evaluate("document.querySelector('#resultRows select').value"),'reserve');
- await evaluate("document.querySelector('#actionChoices input[value=\"favorite-manual\"]').checked=true;document.getElementById('authorizeActions').click()");
- for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('动作范围')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('authorizeActions').disabled"));
+ await evaluate("document.getElementById('probeFavoriteAccount').click()");
+ for(let i=0;i<100;i++){if(await evaluate("favoriteProbe?.account.displayHint==='138****0000'"))break;await pause(100)}
+ await evaluate("document.getElementById('favoriteAlias').value='合成收藏账号';document.getElementById('favoriteBindingConfirmed').checked=true;document.getElementById('bindFavoriteAccount').click()");
+ for(let i=0;i<100;i++){if(await evaluate("!document.getElementById('authorizeActions').disabled"))break;await pause(100)}
+ await evaluate("document.querySelector('#actionChoices input[value=\"favorite\"]').checked=true;document.getElementById('authorizeActions').click()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('status').textContent.includes('收藏范围')"))break;await pause(100)}
  assert.equal(await evaluate("current.actionTasks.length"),0);
  await evaluate("document.getElementById('actionAuthorizationConfirmed').checked=true;document.getElementById('authorizeActions').click()");
  for(let i=0;i<100;i++){if(await evaluate("current.actionTasks.length===1"))break;await pause(100)}
  assert.equal(await evaluate("current.actionTasks[0].state"),'authorized');assert.equal(await evaluate("current.actionTasks[0].systemExecuted"),false);
- const observationData=JSON.parse(await readFile(market,'utf8'));
- function observeFixture(collected){const j=structuredClone(observationData.jobs[0]),company=structuredClone(observationData.companies[0]);j.source.capturedAt=company.source.capturedAt=new Date().toISOString();j.source.text=j.source.text.replace('感兴趣',(collected?'已收藏':'收藏')+'\n感兴趣');return {schemaVersion:1,kind:'read-only-job-observation',job:j,company,controls:{favorite:collected?'collected':'not-collected',labels:[collected?'已收藏':'收藏'],basis:'exact-label-in-job-header-only'}}}
- const observationFile=join(dir,'synthetic-observation.json');await writeFile(observationFile,JSON.stringify(observeFixture(false)));
- async function uploadObservation(){const dom=await call('DOM.getDocument'),node=await call('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'#actionObservation'});await call('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[observationFile]})}
- await uploadObservation();await evaluate("document.getElementById('actionObservationReviewed').checked=true;[...document.querySelectorAll('#actionTasks button')].find(b=>b.textContent==='导入刷新并开始人工接管').click()");
- for(let i=0;i<100;i++){if(await evaluate("current.actionTasks[0].state==='awaiting-user-action'"))break;await pause(100)}
- assert.equal(await evaluate("current.actionTasks[0].state"),'awaiting-user-action');
- await pause(30);await writeFile(observationFile,JSON.stringify(observeFixture(true)));await uploadObservation();
- await evaluate("document.getElementById('actionObservationReviewed').checked=true;[...document.querySelectorAll('#actionTasks button')].find(b=>b.textContent==='导入操作后新观察').click()");
- for(let i=0;i<100;i++){if(await evaluate("current.actionTasks[0].state==='observed-favorite'"))break;await pause(100)}
- assert.equal(await evaluate("current.actionTasks[0].state"),'observed-favorite');assert.equal(await evaluate("current.actionTasks[0].messageSent"),'not-verified');
+ await evaluate("[...document.querySelectorAll('#actionTasks button')].find(b=>b.textContent==='执行这一项收藏').click()");
+ for(let i=0;i<100;i++){if(await evaluate("current.actionTasks[0].state==='confirmed-favorite'"))break;await pause(100)}
+ assert.equal(await evaluate("current.actionTasks[0].state"),'confirmed-favorite');assert.equal(await evaluate("current.actionTasks[0].systemExecuted"),true);assert.equal(await evaluate("current.actionTasks[0].messageSent"),'not-verified');
  await call('Page.reload');await pause(500);await evaluate("document.getElementById('cases').value="+JSON.stringify(caseId)+";document.getElementById('load').click()");
- for(let i=0;i<100;i++){if(await evaluate("document.getElementById('actionTasks').textContent.includes('已观察到平台收藏状态')"))break;await pause(100)}
- assert.ok(await evaluate("document.getElementById('actionTasks').textContent.includes('非本系统点击')"));
- await evaluate("document.querySelector('#actionTasks section').scrollIntoView()");
+ for(let i=0;i<100;i++){if(await evaluate("document.getElementById('actionTasks').textContent.includes('页面刷新核实')"))break;await pause(100)}
+ assert.ok(await evaluate("document.getElementById('actionTasks').textContent.includes('页面刷新核实')"));
+ assert.equal(await evaluate("[...document.querySelectorAll('#actionTasks button')].filter(b=>b.textContent==='执行这一项收藏').length"),0);
+ await evaluate("document.querySelector('#actionTasks section').scrollIntoView({block:'center'})");
  const actionShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'action-ledger.png'),Buffer.from(actionShot.data,'base64'));
  const downloadDir=join(dir,'downloads');await mkdir(downloadDir);await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloadDir});
  await evaluate("document.getElementById('exportResultJson').click()");
@@ -143,7 +161,7 @@ try{
  let exported;
  for(let i=0;i<100;i++){try{exported=JSON.parse(await readFile(join(downloadDir,'private-job-report.json'),'utf8'));break}catch{}await pause(100)}
  assert.equal(exported.jobs[0].selection.bucket,'reserve');assert.equal(exported.totalScore,null);
- assert.equal(exported.actionObservations[0].systemExecuted,false);assert.equal(exported.actionObservations[0].messageSent,'not-verified');
+ assert.equal(exported.actionObservations[0].systemExecuted,true);assert.equal(exported.actionObservations[0].messageSent,'not-verified');
  await evaluate("document.getElementById('exportResultHtml').click()");
  let exportedHtml;
  for(let i=0;i<100;i++){try{exportedHtml=await readFile(join(downloadDir,'private-job-report.html'),'utf8');break}catch{}await pause(100)}
@@ -157,6 +175,6 @@ try{
  assert.equal(await evaluate("document.querySelectorAll('article').length"),1);
  assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
  const exportShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'result-export.png'),Buffer.from(exportShot.data,'base64'));
- console.log('PASS real Chrome: resume/market/review, result selection, scoped manual authorization/observations/reload, no system-execution claim, private JSON/HTML downloads and stale-result blocking.');
+ console.log('PASS real Chrome: resume/market/review, result selection, favorite account binding/authorization/execution/reload with a synthetic worker double, disabled contact, private JSON/HTML downloads and stale-result blocking.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

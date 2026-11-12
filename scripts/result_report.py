@@ -76,7 +76,7 @@ def generate(folder,priority='fit'):
             'companySize':size(company),'abilityStatus':status,'abilityRequirements':a['requirements'] if a else [],'abilityWarnings':a['warnings'] if a else [],
             'companyResearch':financial or {'riskAssessment':'unknown','companyGrowth':'unknown','status':'not-researched'},
             'sourceUrl':j['id'],'capturedAt':j['source'].get('capturedAt'),
-            'sourceTextHash':hash_json(j['source']['text']),'actions':'本系统尚未执行收藏或沟通；不代表其他渠道未操作'}
+            'sourceTextHash':hash_json(j['source']['text']),'actions':'收藏执行以动作台账及刷新证据为准；沟通、简历投递由本人在平台完成。'}
         row['advice']=advice(row,a);row['selection']={'bucket':'unreviewed','reason':'','selected':False}
         rows.append(row)
     def tier(r):
@@ -134,7 +134,7 @@ def summary(report):
 
 def html_report(report):
     e=lambda x:escape(str(x),quote=True)
-    parts=['<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; base-uri &#39;none&#39;"><title>本地求职决策报告</title><style>body{max-width:1000px;margin:30px auto;padding:20px;font:16px/1.7 system-ui;color:#183949}article{padding:22px;border:1px solid #ccdce2;margin:20px 0}h2{font-size:24px}h3{font-size:18px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.warn{background:#fff1cf;padding:12px}</style><h1>本地求职决策报告</h1><p class="warn">私人材料，分享前逐项脱敏。不是匿名报告。不执行收藏、沟通或投递；岗位当前状态须重新确认。</p>']
+    parts=['<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; base-uri &#39;none&#39;"><title>本地求职决策报告</title><style>body{max-width:1000px;margin:30px auto;padding:20px;font:16px/1.7 system-ui;color:#183949}article{padding:22px;border:1px solid #ccdce2;margin:20px 0}h2{font-size:24px}h3{font-size:18px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.warn{background:#fff1cf;padding:12px}</style><h1>本地求职决策报告</h1><p class="warn">私人材料，分享前逐项脱敏。不是匿名报告。本文件不会触发平台操作；收藏状态见台账，沟通与投递请本人完成。岗位当前状态须重新确认。</p>']
     sums=summary(report);labels={'preferred':'人工优选','reserve':'人工候选','tradeoff':'存在取舍','excluded':'本轮不考虑','unreviewed':'尚未选定'}
     parts.append('<h2>优选 '+str(sums['counts']['preferred'])+'/10 · 候选 '+str(sums['counts']['reserve'])+'/10</h2>')
     parts.append('<p>覆盖 '+e(report['coverage']['actualCompanies'])+'/100家公司；优选与候选均由本轮人工指定，不凑数。</p><p>'+e(report['sortingBasis'])+'。'+e(report['tiePolicy'])+'</p>')
@@ -150,7 +150,7 @@ def html_report(report):
         parts.append('<p><strong>薪资披露：'+e('；'.join(salary[:2]) if salary else '本轮未配置判断或未定位原文')+'</strong>（不是针对本人的报价）</p>')
         if r['companyResearch']['riskAssessment']=='major-risk':parts.append('<p class="warn">人工重大风险提示：'+e(r['companyResearch'].get('finding',{}).get('reason','请核对原财报依据'))+'</p>')
         for task in report.get('actionObservations',[]):
-            if task['jobId']==ident:parts.append('<p>动作观察：'+e({'observed-favorite':'观察到平台收藏状态，非系统点击','authorized':'仅授权，未操作','awaiting-user-action':'等待本人操作或结果证据','outcome-unknown':'结果尚未核实','cancelled':'授权撤销'}.get(task['state'],task['state']))+'；消息发送未核实。最后观察时间：'+e(datetime.fromtimestamp(task['observedAt'],timezone.utc).isoformat() if task.get('observedAt') else '无')+'，不是当前状态保证。</p>')
+            if task['jobId']==ident:parts.append('<p>收藏记录：'+e({'confirmed-favorite':'系统已收藏，页面刷新后核实','observed-favorite':'已核实平台收藏状态，仅作观察确认','executing':'执行结果待核实，禁止重复','blocked-before-click':'点击前停止','ready-to-execute':'已核对，尚未点击','authorized':'仅授权，未操作','awaiting-user-action':'历史人工接管，待观察','outcome-unknown':'结果尚未核实','cancelled':'授权撤销'}.get(task['state'],task['state']))+'；沟通和简历投递由本人完成。最后观察时间：'+e(datetime.fromtimestamp(task['observedAt'],timezone.utc).isoformat() if task.get('observedAt') else '无')+'，不是当前状态保证。</p>')
         u=urlsplit(r['sourceUrl'])
         if u.scheme=='https' and u.hostname=='www.zhipin.com' and re.fullmatch(r'/job_detail/[^/]+\.html',u.path):parts.append('<a rel="noreferrer" href="'+e(r['sourceUrl'])+'">原岗位（打开后仍须刷新核实）</a>')
         for key,label in [('emphasize','该强调的真实经历'),('verify','最需要核实的问题'),('possibleMismatch','双方可能不匹配之处')]:

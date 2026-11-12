@@ -49,6 +49,11 @@
 !/scripts/action_ledger.py
 !/scripts/test_action_ledger.py
 !/scripts/observe_job.mjs
+!/scripts/favorite_core.mjs
+!/scripts/favorite_driver.mjs
+!/scripts/favorite_worker.mjs
+!/scripts/test_favorite_core.mjs
+!/scripts/test_favorite_workspace.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -75,6 +80,7 @@
 !/docs/company-research.md
 !/docs/result-report.md
 !/docs/actions.md
+!/docs/favorite-mvp.md
 !/config/
 /config/*
 !/config/financial-sources.json
