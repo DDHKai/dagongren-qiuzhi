@@ -1,4 +1,6 @@
-# 跨设备部署与回传指令（固定快照）
+# 历史跨设备部署与回传指令（test2固定快照）
+
+当前收藏MVP测试请使用[本轮指令](device-mvp-run.md)。本页仅保留旧合成版测试记录。
 
 目标仓库DDHKai/dagongren-qiuzhi，测试标签 **v0.1.1-test2**；应用内版本仍为 **0.1.1-experiment**。test2是包含日志核验、MIT和干净包检查的快照标识，不是应用版本升级。不要使用旧v0.1.1-experiment标签或滚动main代替。
 

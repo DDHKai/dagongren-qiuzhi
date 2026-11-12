@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const parent=join(root,'data/test-tmp');await mkdir(parent,{recursive:true});
 const dir=await mkdtemp(join(parent,'browser workspace '));
+console.log('Synthetic test artifacts: '+dir);
 const python=process.env.DAGONGREN_TEST_PYTHON||'python';
 const chrome=process.env.DAGONGREN_TEST_CHROME;
 if(!chrome)throw Error('Set DAGONGREN_TEST_CHROME to installed Chrome executable');
@@ -45,6 +46,7 @@ try{
  await new Promise((res,rej)=>{ws.onopen=res;ws.onerror=rej});
  ws.onmessage=e=>{const m=JSON.parse(e.data),p=pending.get(m.id);if(p){clearTimeout(p.timer);pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result)}};
  function call(method,params={}){return new Promise((resolve,reject)=>{let id=++seq;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout'))},15000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}))})}
+ const browserInfo=await call('Browser.getVersion');
  async function evaluate(expression){const r=await call('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error('Browser expression failed');return r.result.value}
  await call('Page.navigate',{url});
  for(let i=0;i<50;i++){if(await evaluate("!!document.getElementById('file')"))break;await pause(100)}
@@ -175,6 +177,9 @@ try{
  assert.equal(await evaluate("document.querySelectorAll('article').length"),1);
  assert.equal(await evaluate("document.documentElement.scrollWidth>innerWidth"),false);
  const exportShot=await call('Page.captureScreenshot',{format:'png'});await writeFile(join(dir,'result-export.png'),Buffer.from(exportShot.data,'base64'));
+ await writeFile(join(dir,'browser-summary.json'),JSON.stringify({schemaVersion:1,status:'passed',syntheticOnly:true,favoriteWorkerDouble:true,realBossTouched:false,browser:browserInfo.product,
+  coverage:['TXT/DOCX intake and source mapping','explicit fact confirmation','prescreen unknown separation','ability human review and staleness','company unknown persistence','personal selection and reload','account confirmation and favorite authorization with worker double','JSON/HTML actual download and offline render','stale result export block'],
+  limitation:'Not real BOSS collection/favorite validation, not manual experience or all-browser compatibility.'},null,2));
  console.log('PASS real Chrome: resume/market/review, result selection, favorite account binding/authorization/execution/reload with a synthetic worker double, disabled contact, private JSON/HTML downloads and stale-result blocking.');
  console.log('Synthetic test artifacts: '+dir);
 }finally{if(ws)ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'))}browser.kill();server.kill()}

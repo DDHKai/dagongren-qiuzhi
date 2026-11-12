@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "syntheticOnly": true,
+  "status": "synthetic-fixture-not-live",
+  "targetCompanies": 100,
+  "companies": [
+    {
+      "id": "/gongsi/synthetic-alpha.html",
+      "source": {
+        "url": "https://www.zhipin.com/gongsi/synthetic-alpha.html",
+        "title": "虚构甲公司",
+        "text": "虚构甲公司\n未融资 · 20-99人 · 互联网\n公司简介\n纯合成测试，不是真实雇主。\n工作时间及福利\n双休\n招聘Boss",
+        "capturedAt": "synthetic-only"
+      }
+    },
+    {
+      "id": "/gongsi/synthetic-beta.html",
+      "source": {
+        "url": "https://www.zhipin.com/gongsi/synthetic-beta.html",
+        "title": "虚构乙公司",
+        "text": "虚构乙公司\n未融资 · 100-499人 · 服务业\n公司简介\n纯合成测试，不是真实雇主。\n工作时间及福利\n大小休\n招聘Boss",
+        "capturedAt": "synthetic-only"
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "id": "https://www.zhipin.com/job_detail/synthetic-ai.html",
+      "companyKey": "/gongsi/synthetic-alpha.html",
+      "source": {
+        "url": "https://www.zhipin.com/job_detail/synthetic-ai.html",
+        "title": "「AI电商运营招聘」_虚构测试公司",
+        "text": "AI电商运营 20-30K\n杭州 3-5年 大专\n感兴趣\n职位描述\n负责示例业务的数据复盘。\n使用自动化工具整理示例报表。\n双休\n竞争力分析",
+        "capturedAt": "synthetic-only"
+      }
+    },
+    {
+      "id": "https://www.zhipin.com/job_detail/synthetic-beta.html",
+      "companyKey": "/gongsi/synthetic-beta.html",
+      "source": {
+        "url": "https://www.zhipin.com/job_detail/synthetic-beta.html",
+        "title": "「数据运营招聘」_虚构测试公司",
+        "text": "数据运营 15-18K\n杭州 3-5年 大专\n感兴趣\n职位描述\n底薪18K\n负责示例业务的数据复盘。\n大小休\n竞争力分析",
+        "capturedAt": "synthetic-only"
+      }
+    },
+    {
+      "id": "https://www.zhipin.com/job_detail/synthetic-data.html",
+      "companyKey": "/gongsi/synthetic-alpha.html",
+      "source": {
+        "url": "https://www.zhipin.com/job_detail/synthetic-data.html",
+        "title": "「电商数据运营招聘」_虚构测试公司",
+        "text": "电商数据运营 22-32K\n杭州 3-5年 大专\n感兴趣\n职位描述\n底薪22K\n负责示例业务的数据复盘。\n双休\n竞争力分析",
+        "capturedAt": "synthetic-only"
+      }
+    }
+  ]
+}

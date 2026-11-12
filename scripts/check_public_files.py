@@ -26,6 +26,7 @@ PUBLIC += ['scripts/company_research.py','scripts/test_company_research.py','doc
 PUBLIC += ['scripts/result_report.py','scripts/test_result_report.py','docs/result-report.md']
 PUBLIC += ['scripts/action_ledger.py','scripts/test_action_ledger.py','scripts/observe_job.mjs','docs/actions.md']
 PUBLIC += ['scripts/favorite_core.mjs','scripts/favorite_driver.mjs','scripts/favorite_worker.mjs','scripts/test_favorite_core.mjs','scripts/test_favorite_workspace.py','docs/favorite-mvp.md']
+PUBLIC += ['TEST_SNAPSHOT','scripts/run_device_checks.py','scripts/package_device_feedback.py','scripts/test_device_tools.py','docs/device-mvp-run.md','docs/device-feedback-template.md','examples/synthetic-market.json']
 
 def scan(root=ROOT):
     findings=[]

@@ -19,7 +19,7 @@ nodes.salary.value='20';nodes.apply.onclick();assert.equal(window.dagongrenTest.
 nodes.salary.value='-1';nodes.apply.onclick();assert.equal(window.dagongrenTest.getConditions().salary,20);
 let payload=window.dagongrenTest.exportPayload();
 assert.equal(payload.schemaVersion,2);
-assert.equal(payload.appVersion,'0.1.1-experiment');
+assert.equal(payload.appVersion,'0.2.0-experiment');
 assert.equal(payload.events.at(-1).type,'validation_rejected');
 assert.equal(payload.events.at(-1).detail.reason,'out_of_range');
 assert.equal(payload.events.at(-1).state.conditions.salary,20);

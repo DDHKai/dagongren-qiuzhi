@@ -21,6 +21,8 @@ class AuditTests(unittest.TestCase):
     def test_unknown_version(self):
         d=fixture();d['schemaVersion']=1
         self.assertEqual(audit(d)['verdict'],'证据不足')
+    def test_compatible_current_static_fixture(self):
+        d=fixture();d['appVersion']='0.2.0-experiment';self.assertEqual(audit(d)['verdict'],'通过')
     def test_counts_and_hidden_state(self):
         d=fixture();d['counts']['selected']=1
         self.assertEqual(audit(d)['verdict'],'异常')

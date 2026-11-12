@@ -19,5 +19,8 @@ class VersionTests(unittest.TestCase):
     def test_mismatched_docs_rejected(self):
         (self.root/'README.md').write_text('old version',encoding='utf-8')
         with self.assertRaises(ValueError):check_version(self.root)
+    def test_mismatched_snapshot_rejected(self):
+        (self.root/'TEST_SNAPSHOT').write_text('v0.2.0-mvp-test1',encoding='utf-8')
+        with self.assertRaises(ValueError):check_version(self.root)
 
 if __name__=='__main__':unittest.main()

@@ -54,6 +54,9 @@
 !/scripts/favorite_worker.mjs
 !/scripts/test_favorite_core.mjs
 !/scripts/test_favorite_workspace.py
+!/scripts/run_device_checks.py
+!/scripts/package_device_feedback.py
+!/scripts/test_device_tools.py
 !/scripts/audit_test_log.py
 !/scripts/test_audit_test_log.py
 !/scripts/test_desktop_launcher.py
@@ -81,6 +84,8 @@
 !/docs/result-report.md
 !/docs/actions.md
 !/docs/favorite-mvp.md
+!/docs/device-mvp-run.md
+!/docs/device-feedback-template.md
 !/config/
 /config/*
 !/config/financial-sources.json
@@ -90,6 +95,8 @@
 !/examples/synthetic-conditions.json
 !/examples/collector-config.json
 !/examples/prescreen-policy.json
+!/examples/synthetic-market.json
+!/TEST_SNAPSHOT
 __pycache__/
 *.pyc
 *.sqlite3*

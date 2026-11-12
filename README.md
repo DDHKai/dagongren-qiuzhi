@@ -1,14 +1,14 @@
 # 打工人 · 求职决策助手
 
-当前实验版：0.1.1-experiment（版本入口VERSION）。
+当前实验版：0.2.0-experiment（版本入口VERSION）。
 
-桌面公开实验发布：[v0.1.1-desktop-experiment](https://github.com/DDHKai/dagongren-qiuzhi/releases/tag/v0.1.1-desktop-experiment)。推荐下载Release附件，校验后解压；[发布范围、安装与限制](docs/desktop-release.md)。
+历史桌面合成发布：[v0.1.1-desktop-experiment](https://github.com/DDHKai/dagongren-qiuzhi/releases/tag/v0.1.1-desktop-experiment)。旧版范围见[发布范围、安装与限制](docs/desktop-release.md)。
 
-当前跨设备测试快照为 **v0.1.1-test2**（应用版本仍为0.1.1-experiment），包含最新核验工具及MIT许可；请按[完整下载、部署、测试与回传指令](docs/device-run-request.md)执行。不要与旧v0.1.1-experiment标签混用。
+当前跨设备测试快照为 **v0.2.0-mvp-test1**（应用版本0.2.0-experiment）；请按[本轮Windows／macOS下载、部署、测试与回传指令](docs/device-mvp-run.md)执行。使用新Release附件，不与旧v0.1.1-test2或滚动main混用。
 
 帮助有工作经验的求职者，将经历、岗位需求和公司证据放在一起，做有依据的选择。
 
-**当前版本0.1.1-experiment：公开实验代码，不是完整自动求职产品。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。已收到Windows与Intel macOS的无头Chrome实机回传，具体环境与未测项见[验收记录](docs/test2-validation.md)。
+**历史合成发布0.1.1-experiment：下述旧实验范围不代表新MVP能力。** 可运行的是合成岗位交互页和独立证据模块；不登录BOSS、不调用模型、不采集真实岗位、不投递。已收到Windows与Intel macOS的无头Chrome实机回传，具体环境与未测项见[验收记录](docs/test2-validation.md)。
 
 ## 当前能力
 
@@ -38,9 +38,13 @@ main新增真实输入基础模块：`scripts/resume_workspace.py`可本地导�
 | 双系统启动及端口重试 | test2双系统自动化回传通过；人工有头体验仍未验证 |
 | 真实简历导入、AI匹配、岗位/财报采集、沟通投递 | 当前发布版不支持 |
 
-## 快速体验
+## 本轮MVP测试版
 
-[下载固定测试快照ZIP](https://github.com/DDHKai/dagongren-qiuzhi/archive/refs/tags/v0.1.1-test2.zip)，解压到新目录。无需模型Key或BOSS账号，不输入个人资料。test2标签不随main更新；T06前置条件修订见main中的测试指令。
+下载[v0.2.0-mvp-test1 Release附件](https://github.com/DDHKai/dagongren-qiuzhi/releases/tag/v0.2.0-mvp-test1)，按[完整测试指令](docs/device-mvp-run.md)校验、解压到全新目录。真实工作区使用`start-windows.bat --workspace`或`sh ./start-macos.command --workspace`。需要Python 3.10+、Node 22+和已安装Chrome；PDF另需可选依赖。不提供模型自动语义评审，不默认授权真实收藏。
+
+## 历史合成演示
+
+[下载旧合成测试快照ZIP](https://github.com/DDHKai/dagongren-qiuzhi/archive/refs/tags/v0.1.1-test2.zip)，解压到新目录。无需模型Key或BOSS账号，不输入个人资料。test2标签不随main更新；T06前置条件修订见main中的测试指令。
 
 - 浏览器打开 `web/index.html`，不覆盖启动器测试。
 - 已装Python 3.10+：Windows双击 `start-windows.bat`。

@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 
 IDS=['S01','S02','S03','S04','S05','S06']
-# Fixed fixture for 0.1.1-experiment only: fixed pay, rest, fit, growth evidence.
+# Same static fixture for 0.1.1/0.2.0 experiments only: fixed pay, rest, fit, growth evidence.
 FIXTURE=[(20,'double',3,1),(None,'unknown',3,2),(16,'double',3,1),
          (22,'single',2,1),(23,'double',0,1),(19,'double',2,0)]
 LABELS=['披露条件满足','值得核实','明确存在取舍']
@@ -44,7 +44,7 @@ def audit(data):
     if data.get('syntheticOnly') is not True:errors.append('not_declared_synthetic');return result()
     if data.get('capabilities')!={'liveCollection':False,'externalActions':False,'automaticAIReview':False}:
         errors.append('unexpected_capabilities');return result()
-    if data.get('schemaVersion')!=2 or data.get('appVersion')!='0.1.1-experiment':
+    if data.get('schemaVersion')!=2 or data.get('appVersion') not in ('0.1.1-experiment','0.2.0-experiment'):
         missing.append('unsupported_schema_or_version_no_replay');return result()
     events=data.get('events')
     if not isinstance(events,list) or not events or len(events)>10000:

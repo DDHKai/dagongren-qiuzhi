@@ -1,4 +1,6 @@
-# Desktop test 0.1.1-experiment
+# Desktop launcher 0.2.0-experiment
+
+Current MVP cross-device instructions: [Windows/macOS MVP test1](device-mvp-run.md). This page retains static-demo launcher details.
 
 Windows + macOS only. Synthetic demonstration, not live recruitment, AI review or messaging. No third-party dependencies. The Python launcher requires an existing Python 3.10+ installation; no runtime is bundled and no D-drive independence is claimed for virtual environments. No reference-project implementation code was copied.
 

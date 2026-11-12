@@ -22,7 +22,7 @@ class LauncherTests(unittest.TestCase):
             c=http.client.HTTPConnection(*second.server_address,timeout=3)
             c.request('GET','/');r=c.getresponse()
             self.assertEqual(r.status,200)
-            self.assertIn(b'0.1.1-experiment',r.read())
+            self.assertIn((ROOT/'VERSION').read_text(encoding='utf-8').strip().encode(),r.read())
             c.request('GET','/README.md');r=c.getresponse()
             self.assertEqual(r.status,404);r.read()
             c.request('GET','/favicon.ico');r=c.getresponse()

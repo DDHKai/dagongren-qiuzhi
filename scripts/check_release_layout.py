@@ -16,6 +16,10 @@ ROOT=Path(__file__).resolve().parents[1]
 def check_version(root):
     version=(root/'VERSION').read_text(encoding='utf-8').strip()
     if not re.fullmatch(r'\d+\.\d+\.\d+-experiment',version):raise ValueError('invalid_version')
+    snapshot=root/'TEST_SNAPSHOT'
+    if snapshot.exists():
+        tag=snapshot.read_text(encoding='utf-8').strip()
+        if not re.fullmatch(r'v\d+\.\d+\.\d+-mvp-test\d+',tag) or not tag.startswith('v'+version.split('-')[0]+'-'):raise ValueError('snapshot_version_mismatch')
     html=(root/'web/index.html').read_text(encoding='utf-8')
     if re.search(r"const VERSION='([^']+)'",html).group(1)!=version:raise ValueError('page_version_mismatch')
     for name in ('README.md','docs/desktop-testing.md'):
@@ -46,7 +50,7 @@ def clean_rehearsal(root):
         if (clean/'data').exists() or (clean/'.git').exists():raise ValueError('private_directory_in_package')
         check_version(clean)
         env=dict(os.environ);env.pop('PYTHONPATH',None);env['PYTHONDONTWRITEBYTECODE']='1'
-        subprocess.run([sys.executable,str(clean/'scripts/verify_release.py')],cwd=dest,env=env,check=True,timeout=120)
+        subprocess.run([sys.executable,str(clean/'scripts/verify_release.py')],cwd=dest,env=env,check=True,timeout=300)
         print(json.dumps({'cleanRehearsal':'passed','spaceInPath':True,'manifestFiles':len(manifest),
             'runtime':'existing interpreter; not bundled or independently installed',
             'limitations':'same host only; not macOS or clean-machine proof'},ensure_ascii=False))

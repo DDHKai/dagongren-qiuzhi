@@ -62,7 +62,7 @@ def main():
         url = 'http://127.0.0.1:'+str(server.server_address[1])+'/'
         version=(ROOT/'VERSION').read_text(encoding='utf-8').strip()
         print('Dagongren '+version+'\n'+url+'\nLocal only. Ctrl+C to stop.',flush=True)
-        if a.workspace:print('Private resume workspace enabled; files persist locally. No model or external action.',flush=True)
+        if a.workspace:print('Private workspace enabled; data stays local. Favorite only after explicit account/job authorization; no messaging or resume sending.',flush=True)
         if not a.no_browser:
             timer = threading.Timer(0.3, lambda:webbrowser.open(url))
             timer.daemon = True
